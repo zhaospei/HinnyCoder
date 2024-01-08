@@ -7,12 +7,13 @@ from transformers import (
     TrainingArguments,
     TrainerCallback,
 )
-from utils.tokenizer import get_preprocessed_cmg, get_preprocessed_cmg_history
+from utils.tokenizer import get_preprocessed_scg
 from contextlib import nullcontext
 from tqdm import tqdm
 import json
+import datasets
 
-dataset_id = "zhaospei/cmg-history"
+dataset_id = "zhaospei/smart-doc"
 model_id = "codellama/CodeLlama-7b-hf"
 
 tokenizer = CodeLlamaTokenizer.from_pretrained(model_id)
@@ -22,10 +23,8 @@ model = AutoModelForCausalLM.from_pretrained(model_id, load_in_8bit=True, device
 
 tokenizer.pad_token = tokenizer.eos_token
 tokenizer.padding_side = "right" # Fix weird overflow issue with fp16 training
-train_dataset = get_preprocessed_cmg_history(dataset_id, tokenizer, 'train')
+train_dataset = get_preprocessed_scg(dataset_id, tokenizer, 'train')
 
-# train_dataset = get_preprocessed_dataset(tokenizer, samsum_dataset, 'train')
-# train_dataset = get_preprocessed_samsum(cmg_dataset, tokenizer, 'train')
 
 model.train()
 
@@ -56,14 +55,14 @@ def create_peft_config(model):
 model, lora_config = create_peft_config(model)
 
 enable_profiler = False
-output_dir = "tmp/code-llama-output"
+output_dir = "tmp/smartdoc-07-12-23"
 
 config = {
     'lora_config': lora_config,
     'learning_rate': 1e-4,
     'num_train_epochs': 1,
     'gradient_accumulation_steps': 2,
-    'per_device_train_batch_size': 2,
+    'per_device_train_batch_size': 4,
     'gradient_checkpointing': False,
 }
 
@@ -119,3 +118,20 @@ with profiler:
     trainer.train()
 
 model.save_pretrained(output_dir)
+
+model.eval()
+
+examples = datasets.load_dataset(dataset_id, split='test')
+
+def write_string_to_file(absolute_filename, string):
+        with open(absolute_filename, 'a') as fout:
+            fout.write(string)
+
+for example in tqdm(examples):
+    model_input = tokenizer(example['prompt'], return_tensors="pt").to("cuda")
+
+    output = ''
+
+    with torch.no_grad():
+        output = tokenizer.decode(model.generate(**model_input, max_new_tokens=301, pad_token_id=tokenizer.eos_token_id)[0], skip_special_tokens=True)
+    write_string_to_file('test_smartdoc.output', '' + output + '<nl>')

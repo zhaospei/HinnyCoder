@@ -1,0 +1,9 @@
+torch
+transformers==4.34.1
+datasets
+accelerate
+bitsandbytes
+scipy
+peft
+sentencepiece
+tqdm
