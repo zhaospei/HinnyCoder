@@ -36,6 +36,7 @@ def run(args):
     else:
         model = AutoModelForCausalLM.from_pretrained(model_id, trust_remote_code=True, torch_dtype=torch.bfloat16, device_map='auto').cuda()
 
+    model.eval()
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right" # Fix weird overflow issue with fp16 training
 
@@ -57,7 +58,7 @@ def run(args):
     len_batch = len(sources) // args.batch_size
     with tqdm(total=len_batch, desc="gen") as pbar:
         for batch in batch_list:
-            model_inputs = tokenizer(batch, return_tensors="pt", padding=True, max_length=2048, truncation=True).to("cuda")
+            model_inputs = tokenizer(batch, return_tensors="pt", padding=True, truncation=True).to("cuda")
 
             generated_ids = model.generate(**model_inputs, max_new_tokens=500, pad_token_id=tokenizer.eos_token_id)
 
@@ -65,7 +66,7 @@ def run(args):
 
             for idx, source in enumerate(batch):
                 # print(idx, source)
-                write_string_to_file(args.output_file, output[idx][len(source):] + '\n')
+                write_string_to_file(args.output_file, output[idx][len(source):] + '<nl>')
                 
                 # print(output[0][len(sources[0]):], output[1][len(sources[1]):])
             pbar.update(1)

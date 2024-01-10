@@ -8,18 +8,19 @@ import torch.distributed
 import transformers
 from transformers import Trainer
 from datasets import load_dataset
+import argparse
+from contextlib import nullcontext
 
 
+BEGIN_TOKEN = "<｜fim▁begin｜>"
+FILL_TOKEN = "<｜fim▁hole｜>"
+END_TOKEN = "<｜fim▁end｜>"
 IGNORE_INDEX = -100
 EOT_TOKEN = "<|EOT|>"
 
-def build_instruction_prompt(instruction: str):
-    return '''
-You are an AI programming assistant, utilizing the DeepSeek Coder model, developed by DeepSeek Company, and you only answer questions related to computer science. For politically sensitive questions, security and privacy issues, and other non-computer science questions, you will refuse to answer.
-### Instruction:
-{}
-### Response:
-'''.format(instruction.strip()).lstrip()
+def build_masked_func(masked_func: str):
+    masked_func = masked_func.replace('<FILL_FUNCTION_BODY>', FILL_TOKEN)
+    return BEGIN_TOKEN + masked_func + END_TOKEN
 
 @dataclass
 class ModelArguments:
@@ -111,10 +112,10 @@ class DataCollatorForSupervisedDataset(object):
 
 def train_tokenize_function(examples, tokenizer):
     sources = [
-        build_instruction_prompt(instruction)
-        for instruction in examples['instruction']
+        build_masked_func(instruction)
+        for instruction in examples['masked_contract']
     ]
-    targets = [f"{output}\n{EOT_TOKEN}" for output in examples['output']]
+    targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
     data_dict = preprocess(sources, targets, tokenizer)
     return data_dict
 
@@ -180,14 +181,97 @@ def train():
             print(f"Sample {index} of the training set: {tokenizer.decode(list(train_dataset[index]['input_ids']))}.")
 
     data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer)
-    data_module = dict(train_dataset=train_dataset, eval_dataset=None, data_collator=data_collator)
+    # data_module = dict(train_dataset=train_dataset, eval_dataset=None, data_collator=data_collator)
 
-    trainer = Trainer(model=model, tokenizer=tokenizer, args=training_args, **data_module)
+    # trainer = Trainer(model=model, tokenizer=tokenizer, args=training_args, **data_module)
 
+    # trainer.train()
+    # trainer.save_state()
+    # safe_save_model_for_hf_trainer(trainer=trainer, output_dir=training_args.output_dir)
+
+    def create_peft_config(model):
+        from peft import (
+            get_peft_model,
+            LoraConfig,
+            TaskType,
+            prepare_model_for_int8_training,
+        )
+
+        peft_config = LoraConfig(
+            task_type=TaskType.CAUSAL_LM,
+            inference_mode=False,
+            r=8,
+            lora_alpha=32,
+            lora_dropout=0.05,
+            target_modules = ["q_proj", "v_proj"]
+        )
+
+        # prepare int-8 model for training
+        # if args.load_in_8bit:
+        #     model = prepare_model_for_int8_training(model)
+        model = get_peft_model(model, peft_config)
+        model.print_trainable_parameters()
+        return model, peft_config
+
+    # create peft config
+    model, lora_config = create_peft_config(model)
+
+    # output_dir = args.output_dir
+
+    # config = {
+    #     'lora_config': lora_config,
+    #     'learning_rate': 1e-4,
+    #     'num_train_epochs': 1,
+    #     'gradient_accumulation_steps': 2,
+    #     'per_device_train_batch_size': args.batch_size,
+    #     'gradient_checkpointing': False,
+    # }
+
+    model.train()
+
+    # Define training args
+    # training_args = TrainingArguments(
+    #     output_dir=output_dir,
+    #     overwrite_output_dir=True,
+    #     bf16=True,  # Use BF16 if available
+    #     # logging strategies
+    #     logging_dir=f"{output_dir}/logs",
+    #     logging_strategy="steps",
+    #     logging_steps=10,
+    #     save_strategy="no",
+    #     optim="adamw_torch_fused",
+    #     max_steps= -1,
+    #     **{k:v for k,v in config.items() if k != 'lora_config'}
+    # )
+
+    # profiler = nullcontext()
+    # with profiler:
+        # Create Trainer instance
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        data_collator=data_collator,
+        eval_dataset=None,
+    )
+
+    # Start training
     trainer.train()
-    trainer.save_state()
-    safe_save_model_for_hf_trainer(trainer=trainer, output_dir=training_args.output_dir)
 
+    model.save_pretrained(training_args.output_dir)
+
+# def main():
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument("--batch_size", default=2, type=int,
+#                         help="Batch size per GPU/CPU for training.")
+#     parser.add_argument("--load_in_8bit", action='store_true',
+#                         help="Load model 8 bit.")
+#     parser.add_argument("--model_id", type=str, default='deepseek-ai/deepseek-coder-6.7b-base')
+#     parser.add_argument("--dataset_id", type=str, default='zhaospei/smart-contract-gen')
+#     parser.add_argument("--output_file", type=str, default="gen.output")
+#     parser.add_argument("--output_dir", type=str, default='tmp/scg-09-01-24')
+#     args = parser.parse_args()
+#     train(args)
 
 if __name__ == "__main__":
     train()
