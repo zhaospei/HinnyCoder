@@ -58,7 +58,7 @@ def run(args):
     len_batch = len(sources) // args.batch_size
     with tqdm(total=len_batch, desc="gen") as pbar:
         for batch in batch_list:
-            model_inputs = tokenizer(batch, return_tensors="pt", padding=True, max_length=2048, truncation=True).to("cuda")
+            model_inputs = tokenizer(batch, return_tensors="pt", padding='max_length', max_length=2048, truncation=True).to("cuda")
 
             generated_ids = model.generate(**model_inputs, max_new_tokens=512, pad_token_id=tokenizer.eos_token_id)
 
