@@ -151,12 +151,18 @@ def train():
         print("Load model from {} over.".format(model_args.model_name_or_path))
 
 
+    # raw_train_datasets = load_dataset(
+    #     'json',
+    #     data_files=data_args.data_path,
+    #     split="train",
+    #     cache_dir=training_args.cache_dir
+    # )
+
     raw_train_datasets = load_dataset(
-        'json',
-        data_files=data_args.data_path,
-        split="train",
-        cache_dir=training_args.cache_dir
+        data_args.data_path,
+        split="train[:5%]",
     )
+
     if training_args.local_rank > 0: 
         torch.distributed.barrier()
         
