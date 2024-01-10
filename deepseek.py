@@ -3,8 +3,8 @@ import torch
 import datasets
 import argparse
 from tqdm import tqdm
-# import logging
-# logging.disable(logging.WARNING)
+import logging
+logging.disable(logging.WARNING)
 
 BEGIN_TOKEN = "<｜fim▁begin｜>"
 FILL_TOKEN = "<｜fim▁hole｜>"

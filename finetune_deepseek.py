@@ -160,7 +160,7 @@ def train():
 
     raw_train_datasets = load_dataset(
         data_args.data_path,
-        split="train[:5%]",
+        split="train",
     )
 
     if training_args.local_rank > 0: 

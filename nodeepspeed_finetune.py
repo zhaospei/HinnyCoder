@@ -151,7 +151,7 @@ def train(args):
     model = transformers.AutoModelForCausalLM.from_pretrained(
         args.model_name_or_path,
         torch_dtype=torch.bfloat16,
-        load_in_8bit=True,
+        load_in_8bit=args.load_in_8bit,
     )
 
     # if training_args.local_rank == 0:
@@ -167,7 +167,7 @@ def train(args):
 
     raw_train_datasets = load_dataset(
         args.data_path,
-        split="train[:5%]",
+        split="train",
     )
 
     # if training_args.local_rank > 0: 
