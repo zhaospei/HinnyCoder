@@ -165,10 +165,16 @@ def train(args):
     #     cache_dir=training_args.cache_dir
     # )
 
-    raw_train_datasets = load_dataset(
-        args.data_path,
-        split="train[:5%]",
-    )
+    if args.task == 'train':
+        raw_train_datasets = load_dataset(
+            args.data_path,
+            split="train",
+        )
+    else:
+        raw_train_datasets = load_dataset(
+            args.data_path,
+            split="train[:5%]",
+        )
 
     # if training_args.local_rank > 0: 
     #     torch.distributed.barrier()
@@ -275,6 +281,7 @@ def train(args):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--task", type=str, default='train')
     parser.add_argument("--batch_size", default=1, type=int,
                         help="Batch size per GPU/CPU for training.")
     parser.add_argument("--load_in_8bit", action='store_true',

@@ -58,7 +58,7 @@ def run(args):
     len_batch = len(sources) // args.batch_size
     with tqdm(total=len_batch, desc="gen") as pbar:
         for batch in batch_list:
-            model_inputs = tokenizer(batch, return_tensors="pt", padding='max_length', max_length=args.max_length, truncation=True).to("cuda")
+            model_inputs = tokenizer(batch, return_tensors="pt", padding=True).to("cuda")
 
             generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.eos_token_id)
 
@@ -83,6 +83,7 @@ def main():
     parser.add_argument("--dataset_id", type=str, default='zhaospei/smart-contract-gen')
     parser.add_argument("--output_file", type=str, default="gen.output")
     parser.add_argument("--max_length", type=int, default=1024)
+    parser.add_argument("--padding", type=str, default='longest')
     parser.add_argument("--max_new_tokens", type=int, default=64)
     args = parser.parse_args()
     run(args)
