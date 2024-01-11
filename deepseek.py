@@ -62,9 +62,9 @@ def run(args):
 
             generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.eos_token_id)
 
-            truncated_ids = [ids[len(model_inputs[idx]):] for idx, ids in enumerate(generated_ids)]
+            # truncated_ids = [ids[len(model_inputs[idx]):] for idx, ids in enumerate(generated_ids)]
 
-            output = tokenizer.batch_decode(truncated_ids, skip_special_tokens=True)
+            output = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
 
             for idx, source in enumerate(batch):
                 # print(idx, source)
