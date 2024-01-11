@@ -91,9 +91,9 @@ def main():
     parser.add_argument("--model_id", type=str, default='deepseek-ai/deepseek-coder-6.7b-base')
     parser.add_argument("--dataset_id", type=str, default='zhaospei/smart-contract-gen')
     parser.add_argument("--output_file", type=str, default="gen.output")
-    parser.add_argument("--max_length", type=int, default=1024)
+    parser.add_argument("--max_length", type=int, default=2048)
     parser.add_argument("--padding", type=str, default='longest')
-    parser.add_argument("--max_new_tokens", type=int, default=64)
+    parser.add_argument("--max_new_tokens", type=int, default=128)
     args = parser.parse_args()
     run(args)
 
