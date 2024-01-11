@@ -58,21 +58,24 @@ def run(args):
     len_batch = len(sources) // args.batch_size
     with tqdm(total=len_batch, desc="gen") as pbar:
         for batch in batch_list:
-            model_inputs = tokenizer(batch, return_tensors="pt", padding=True).to("cuda")
-            # model_inputs = tokenizer(batch, return_tensors="pt", padding='max_length', max_length=args.max_length, truncation=True).to("cuda")
+            # model_inputs = tokenizer(batch, return_tensors="pt", padding=True).to("cuda")
+            model_inputs = tokenizer(batch, return_tensors="pt", padding='max_length', max_length=args.max_length, truncation=True).to("cuda")
 
             generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.eos_token_id)
 
-            # truncated_ids = [ids[len(model_inputs[idx]):] for idx, ids in enumerate(generated_ids)]
+            truncated_ids = [ids[len(model_inputs[idx]):] for idx, ids in enumerate(generated_ids)]
 
-            output = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
+            output = tokenizer.batch_decode(truncated_ids, skip_special_tokens=True)
 
             for idx, source in enumerate(batch):
                 # print(idx, source)
-                write_string_to_file(args.output_file, output[idx][len(source):] + '<nl>')
+                # write_string_to_file(args.output_file, output[idx][len(source):] + '<nl>')
                 # output[idx] = output[idx].encode('utf-8')
-                # write_string_to_file(args.output_file, output[idx] + '<nl>')
-                
+                try:
+                    write_string_to_file(args.output_file, output[idx] + '<nl>')
+                except Exception as e:
+                    print(e)
+                    write_string_to_file(args.output_file, '<nl>')
                 # print(output[0][len(sources[0]):], output[1][len(sources[1]):])
             pbar.update(1)
 def main():
