@@ -69,9 +69,9 @@ def run(args):
 
             for idx, source in enumerate(batch):
                 # print(idx, source)
-                # write_string_to_file(args.output_file, output[idx][len(source):] + '<nl>')
-                output[idx] = output[idx].encode('utf-8')
-                write_string_to_file(args.output_file, output[idx] + '<nl>')
+                write_string_to_file(args.output_file, output[idx][len(source):] + '<nl>')
+                # output[idx] = output[idx].encode('utf-8')
+                # write_string_to_file(args.output_file, output[idx] + '<nl>')
                 
                 # print(output[0][len(sources[0]):], output[1][len(sources[1]):])
             pbar.update(1)
