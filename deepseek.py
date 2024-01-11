@@ -58,9 +58,9 @@ def run(args):
     len_batch = len(sources) // args.batch_size
     with tqdm(total=len_batch, desc="gen") as pbar:
         for batch in batch_list:
-            model_inputs = tokenizer(batch, return_tensors="pt", padding='max_length', max_length=2048, truncation=True).to("cuda")
+            model_inputs = tokenizer(batch, return_tensors="pt", padding='max_length', max_length=args.max_length, truncation=True).to("cuda")
 
-            generated_ids = model.generate(**model_inputs, max_new_tokens=512, pad_token_id=tokenizer.eos_token_id)
+            generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.eos_token_id)
 
             truncated_ids = [ids[len(model_inputs[idx]):] for idx, ids in enumerate(generated_ids)]
 
@@ -82,6 +82,8 @@ def main():
     parser.add_argument("--model_id", type=str, default='deepseek-ai/deepseek-coder-6.7b-base')
     parser.add_argument("--dataset_id", type=str, default='zhaospei/smart-contract-gen')
     parser.add_argument("--output_file", type=str, default="gen.output")
+    parser.add_argument("--max_length", type=int, default=1024)
+    parser.add_argument("--max_new_tokens", type=int, default=64)
     args = parser.parse_args()
     run(args)
 

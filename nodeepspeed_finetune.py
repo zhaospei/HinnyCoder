@@ -167,7 +167,7 @@ def train(args):
 
     raw_train_datasets = load_dataset(
         args.data_path,
-        split="train",
+        split="train[:5%]",
     )
 
     # if training_args.local_rank > 0: 
@@ -207,7 +207,7 @@ def train(args):
             get_peft_model,
             LoraConfig,
             TaskType,
-            prepare_model_for_int8_training,
+            prepare_model_for_kbit_training,
         )
 
         peft_config = LoraConfig(
@@ -220,8 +220,8 @@ def train(args):
         )
 
         # prepare int-8 model for training
-        # if args.load_in_8bit:
-        #     model = prepare_model_for_int8_training(model)
+        if args.load_in_8bit:
+            model = prepare_model_for_kbit_training(model)
         model = get_peft_model(model, peft_config)
         model.print_trainable_parameters()
         return model, peft_config
