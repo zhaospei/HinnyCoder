@@ -59,6 +59,7 @@ def run(args):
     with tqdm(total=len_batch, desc="gen") as pbar:
         for batch in batch_list:
             model_inputs = tokenizer(batch, return_tensors="pt", padding=True).to("cuda")
+            # model_inputs = tokenizer(batch, return_tensors="pt", padding='max_length', max_length=args.max_length, truncation=True).to("cuda")
 
             generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.eos_token_id)
 
@@ -69,6 +70,7 @@ def run(args):
             for idx, source in enumerate(batch):
                 # print(idx, source)
                 # write_string_to_file(args.output_file, output[idx][len(source):] + '<nl>')
+                output[idx] = output[idx].encode('utf-8')
                 write_string_to_file(args.output_file, output[idx] + '<nl>')
                 
                 # print(output[0][len(sources[0]):], output[1][len(sources[1]):])
