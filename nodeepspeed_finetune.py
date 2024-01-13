@@ -112,8 +112,8 @@ class DataCollatorForSupervisedDataset(object):
 
 def train_tokenize_function(examples, tokenizer):
     sources = [
-        build_masked_func(instruction)
-        for instruction in examples['masked_contract']
+        build_masked_func(instruction) + '\n' + output + '\n<correct>'
+        for (instruction, output) in zip(examples['masked_contract'], examples['deepseek_gen'])
     ]
     targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
     data_dict = preprocess(sources, targets, tokenizer)
@@ -287,9 +287,9 @@ def main():
     parser.add_argument("--load_in_8bit", action='store_true',
                         help="Load model 8 bit.")
     parser.add_argument("--model_name_or_path", type=str, default='deepseek-ai/deepseek-coder-6.7b-base')
-    parser.add_argument("--data_path", type=str, default='zhaospei/smart-contract-gen')
+    parser.add_argument("--data_path", type=str, default='zhaospei/refine_scg')
     parser.add_argument("--output_file", type=str, default="gen.output")
-    parser.add_argument("--output_dir", type=str, default='tmp/scg-09-01-24')
+    parser.add_argument("--output_dir", type=str, default='tmp/scg-13-01-24')
     parser.add_argument("--model_max_length", type=int, default=2048)
     parser.add_argument("--epochs", type=int, default=1)
     args = parser.parse_args()
