@@ -40,7 +40,7 @@ def run(args):
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right" # Fix weird overflow issue with fp16 training
 
-    dataset = datasets.load_dataset(dataset_id, split='test')
+    dataset = datasets.load_dataset(dataset_id, split=args.data_split)
 
     # train_dataset = raw_train_datasets.map(
     #     train_tokenize_function,
@@ -94,6 +94,7 @@ def main():
     parser.add_argument("--max_length", type=int, default=2048)
     parser.add_argument("--padding", type=str, default='longest')
     parser.add_argument("--max_new_tokens", type=int, default=128)
+    parser.add_argument("--data_split", type=str, default='test')
     args = parser.parse_args()
     run(args)
 
