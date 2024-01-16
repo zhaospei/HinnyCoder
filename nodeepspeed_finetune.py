@@ -275,7 +275,8 @@ def train(args):
     )
 
     # Start training
-    trainer.train()
+    if args.task == 'train': 
+        trainer.train()
 
     model.save_pretrained(training_args.output_dir)
 
