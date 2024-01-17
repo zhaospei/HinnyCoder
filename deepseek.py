@@ -6,6 +6,8 @@ from tqdm import tqdm
 import logging
 logging.disable(logging.WARNING)
 
+from peft import PeftModel
+
 BEGIN_TOKEN = "<｜fim▁begin｜>"
 FILL_TOKEN = "<｜fim▁hole｜>"
 END_TOKEN = "<｜fim▁end｜>"
@@ -26,7 +28,6 @@ def write_string_to_file(absolute_filename, string):
         fout.write(string)
 
 def run(args):
-
     dataset_id = args.dataset_id
     model_id = args.model_id
 
@@ -35,9 +36,12 @@ def run(args):
         model = AutoModelForCausalLM.from_pretrained(model_id, trust_remote_code=True, torch_dtype=torch.bfloat16, device_map='auto', load_in_8bit=True)
     else:
         model = AutoModelForCausalLM.from_pretrained(model_id, trust_remote_code=True, torch_dtype=torch.bfloat16, device_map='auto').cuda()
+    
+    if args.task == 'gen_finetune':
+        model = PeftModel.from_pretrained(model, args.model_peft)
 
     model.eval()
-    tokenizer.pad_token = tokenizer.eos_token
+    # tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right" # Fix weird overflow issue with fp16 training
 
     dataset = datasets.load_dataset(dataset_id, split=args.data_split)
@@ -49,10 +53,16 @@ def run(args):
     #     num_proc=32,
     #     remove_columns=raw_train_datasets.column_names
 
-    sources = [
-        build_masked_func(masked_contract)
-        for masked_contract in dataset['masked_contract']
-    ]
+    if args.task == 'gen_baseline':
+        sources = [
+            build_masked_func(masked_contract)
+            for masked_contract in dataset['masked_contract']
+        ]
+    else:
+        sources = [
+            build_masked_func(instruction) + '\n' + output + '\n<correct>'
+                for (instruction, output) in zip(dataset['masked_contract'], dataset['deepseek_output'])
+        ]
 
     batch_list = split_batch(sources, args.batch_size)
     len_batch = len(sources) // args.batch_size
@@ -65,7 +75,10 @@ def run(args):
                 # model_inputs = tokenizer(batch, return_tensors="pt", padding=True).to("cuda")
             
 
-            generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.eos_token_id)
+            if args.task == 'gen_baseline':
+                generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.eos_token_id)
+            else:
+                generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.pad_token_id, eos_token_id=32021)
 
             truncated_ids = [ids[len(model_inputs[idx]):] for idx, ids in enumerate(generated_ids)]
 
@@ -84,10 +97,12 @@ def run(args):
             pbar.update(1)
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--task", default='gen_baseline', type=str)
     parser.add_argument("--batch_size", default=2, type=int,
                         help="Batch size per GPU/CPU for training.")
     parser.add_argument("--load_in_8bit", action='store_true',
                         help="Load model 8 bit.")
+    parser.add_argument("--model_peft", type=str, default='')
     parser.add_argument("--model_id", type=str, default='deepseek-ai/deepseek-coder-6.7b-base')
     parser.add_argument("--dataset_id", type=str, default='zhaospei/smart-contract-gen')
     parser.add_argument("--output_file", type=str, default="gen.output")
