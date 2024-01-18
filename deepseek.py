@@ -61,7 +61,7 @@ def run(args):
     #     batch_size=3000,
     #     num_proc=32,
     #     remove_columns=raw_train_datasets.column_names
-
+    print(tokenizer)
     if args.task == 'gen_baseline':
         if 'deepseek' in args.model_id:
             sources = [
@@ -82,8 +82,8 @@ def run(args):
             ]
         else:
             sources = [
-                codellama_build_masked_func(instruction) + '\n' + output + '\n<correct>' 
-                for (instruction, output) in zip(dataset['masked_contract'], dataset['deepseek_output'])
+                codellama_build_masked_func(masked_contract)
+                for masked_contract in dataset['masked_contract']
             ]
 
     batch_list = split_batch(sources, args.batch_size)
@@ -100,8 +100,10 @@ def run(args):
             if args.task == 'gen_baseline':
                 generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.pad_token_id)
             else:
-                generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.pad_token_id, eos_token_id=32021)
-
+                if 'deepseek' in args.model_id:
+                    generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.pad_token_id, eos_token_id=32021)
+                else:
+                    generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.eos_token_id)
             
             # print(tokenizer.decode(generated_ids[0], skip_special_tokens=True))
 
