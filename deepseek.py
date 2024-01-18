@@ -3,8 +3,8 @@ import torch
 import datasets
 import argparse
 from tqdm import tqdm
-import logging
-logging.disable(logging.WARNING)
+# import logging
+# logging.disable(logging.WARNING)
 
 from peft import PeftModel
 
@@ -14,9 +14,15 @@ END_TOKEN = "<｜fim▁end｜>"
 IGNORE_INDEX = -100
 EOT_TOKEN = "<|EOT|>"
 
-def build_masked_func(masked_func: str):
+def deepseek_build_masked_func(masked_func: str):
     masked_func = masked_func.replace('<FILL_FUNCTION_BODY>', FILL_TOKEN)
     return BEGIN_TOKEN + masked_func + END_TOKEN
+
+def codellama_build_masked_func(masked_func):
+    # masked_func = masked_func.replace('<FILL_FUNCTION_BODY>', '<FILL_ME>')
+    # return masked_func
+    prefix_tokens, suffix_tokens = masked_func.split('<FILL_FUNCTION_BODY>')
+    return '▁<PRE>' + prefix_tokens + '▁<SUF>' + suffix_tokens + '▁<MID>'
 
 def split_batch(iterable, n=1):
     l = len(iterable)
@@ -32,6 +38,7 @@ def run(args):
     model_id = args.model_id
 
     tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True, )
+    # print(tokenizer)
     if args.load_in_8bit:
         model = AutoModelForCausalLM.from_pretrained(model_id, trust_remote_code=True, torch_dtype=torch.bfloat16, device_map='auto', load_in_8bit=True)
     else:
@@ -41,10 +48,12 @@ def run(args):
         model = PeftModel.from_pretrained(model, args.model_peft)
 
     model.eval()
-    # tokenizer.pad_token = tokenizer.eos_token
-    tokenizer.padding_side = "right" # Fix weird overflow issue with fp16 training
+    if 'codellama' in args.model_id:
+        tokenizer.pad_token_id = tokenizer.eos_token_id
+    tokenizer.padding_side = "left" # Fix weird overflow issue with fp16 training
 
     dataset = datasets.load_dataset(dataset_id, split=args.data_split)
+    # dataset = datasets.load_dataset(dataset_id, split="train[:1]")
 
     # train_dataset = raw_train_datasets.map(
     #     train_tokenize_function,
@@ -54,15 +63,28 @@ def run(args):
     #     remove_columns=raw_train_datasets.column_names
 
     if args.task == 'gen_baseline':
-        sources = [
-            build_masked_func(masked_contract)
-            for masked_contract in dataset['masked_contract']
-        ]
+        if 'deepseek' in args.model_id:
+            sources = [
+                deepseek_build_masked_func(masked_contract)
+                for masked_contract in dataset['masked_contract']
+            ]
+        else:
+            sources = [
+                codellama_build_masked_func(masked_contract)
+                for masked_contract in dataset['masked_contract']
+            ]
+            # print(sources)
     else:
-        sources = [
-            build_masked_func(instruction) + '\n' + output + '\n<correct>'
+        if 'deepseek' in args.model_id:
+            sources = [
+                deepseek_build_masked_func(instruction) + '\n' + output + '\n<correct>'
                 for (instruction, output) in zip(dataset['masked_contract'], dataset['deepseek_output'])
-        ]
+            ]
+        else:
+            sources = [
+                codellama_build_masked_func(instruction) + '\n' + output + '\n<correct>' 
+                for (instruction, output) in zip(dataset['masked_contract'], dataset['deepseek_output'])
+            ]
 
     batch_list = split_batch(sources, args.batch_size)
     len_batch = len(sources) // args.batch_size
@@ -76,9 +98,12 @@ def run(args):
             
 
             if args.task == 'gen_baseline':
-                generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.eos_token_id)
+                generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.pad_token_id)
             else:
                 generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.pad_token_id, eos_token_id=32021)
+
+            
+            # print(tokenizer.decode(generated_ids[0], skip_special_tokens=True))
 
             truncated_ids = [ids[len(model_inputs[idx]):] for idx, ids in enumerate(generated_ids)]
 

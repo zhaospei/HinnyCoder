@@ -8,3 +8,4 @@ scg-data/
 *.zip
 *.csv
 *.parquet
+codellama-fintune-v1/

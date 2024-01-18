@@ -18,9 +18,15 @@ END_TOKEN = "<｜fim▁end｜>"
 IGNORE_INDEX = -100
 EOT_TOKEN = "<|EOT|>"
 
-def build_masked_func(masked_func: str):
+def deepseek_build_masked_func(masked_func: str):
     masked_func = masked_func.replace('<FILL_FUNCTION_BODY>', FILL_TOKEN)
     return BEGIN_TOKEN + masked_func + END_TOKEN
+
+def codellama_build_masked_func(masked_func):
+    # [self.prefix_token] + prefix_tokens + [self.suffix_token] + suffix_tokens + [self.middle_token]
+    # masked_func = masked_func.replace('<FILL_FUNCTION_BODY>', '<FILL_ME>')
+    prefix_tokens, suffix_tokens = masked_func.split('<FILL_FUNCTION_BODY>')
+    return '▁<PRE>' + prefix_tokens + '▁<SUF>' + suffix_tokens + '▁<MID>'
 
 @dataclass
 class ModelArguments:
@@ -110,12 +116,22 @@ class DataCollatorForSupervisedDataset(object):
             attention_mask=input_ids.ne(self.tokenizer.pad_token_id),
         )
 
-def train_tokenize_function(examples, tokenizer):
+def deepseek_train_tokenize_function(examples, tokenizer):
     sources = [
-        build_masked_func(instruction) + '\n' + output + '\n<correct>'
+        deepseek_build_masked_func(instruction) + '\n' + output + '\n<correct>'
         for (instruction, output) in zip(examples['masked_contract'], examples['deepseek_output'])
     ]
     targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
+    data_dict = preprocess(sources, targets, tokenizer)
+    return data_dict
+
+def codellama_train_tokenize_function(examples, tokenizer):
+    sources = [
+        # codellama_build_masked_func(instruction) + '\n' + output + '\n<correct>'
+        codellama_build_masked_func(instruction)
+        for instruction in examples['masked_contract']
+    ]
+    targets = [f"{output}\n▁<EOT>" for output in examples['func_body']]
     data_dict = preprocess(sources, targets, tokenizer)
     return data_dict
 
@@ -141,6 +157,11 @@ def train(args):
         use_fast=True,
         trust_remote_code=True
     )
+
+    if 'codellama' in args.model_name_or_path:
+        tokenizer.pad_token_id = tokenizer.eos_token_id
+
+    print(tokenizer)
 
     print("PAD Token:", tokenizer.pad_token, tokenizer.pad_token_id)
     print("BOS Token", tokenizer.bos_token, tokenizer.bos_token_id)
@@ -178,17 +199,29 @@ def train(args):
 
     # if training_args.local_rank > 0: 
     #     torch.distributed.barrier()
-        
-    train_dataset = raw_train_datasets.map(
-        train_tokenize_function,
-        batched=True,
-        batch_size=3000,
-        num_proc=32,
-        remove_columns=raw_train_datasets.column_names,
-        load_from_cache_file=True, # not args.overwrite_cache
-        desc="Running Encoding",
-        fn_kwargs={ "tokenizer": tokenizer }
-    )
+
+    if 'deepseek' in args.model_name_or_path:  
+        train_dataset = raw_train_datasets.map(
+            deepseek_train_tokenize_function,
+            batched=True,
+            batch_size=3000,
+            num_proc=32,
+            remove_columns=raw_train_datasets.column_names,
+            load_from_cache_file=True, # not args.overwrite_cache
+            desc="Running Encoding",
+            fn_kwargs={ "tokenizer": tokenizer }
+        )
+    else:
+        train_dataset = raw_train_datasets.map(
+            codellama_train_tokenize_function,
+            batched=True,
+            batch_size=3000,
+            num_proc=32,
+            remove_columns=raw_train_datasets.column_names,
+            load_from_cache_file=True, # not args.overwrite_cache
+            desc="Running Encoding",
+            fn_kwargs={ "tokenizer": tokenizer }
+        )
 
     # if training_args.local_rank == 0:
     #     torch.distributed.barrier()
