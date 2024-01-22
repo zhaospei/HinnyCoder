@@ -8,3 +8,5 @@ tqdm
 deepspeed
 datasets
 tensorboardX
+peft
+evaluate

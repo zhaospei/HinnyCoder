@@ -1,0 +1,54 @@
+
+		if (_value <= 0) throw; 
+        allowance[msg.sender][_spender] = _value;
+        return true;
+    
+<nl>
+        description = _description;
+        expiration = _expiration;
+        action = _spellAction;
+        tag = keccak256(abi.encodePacked(_description));
+        pause = PauseAbstract(0x65976876879F530652a51dAd9F31a44391d87293);
+    
+<nl>   
+    return balances[_owner];
+  
+<nl>owner = msg.sender; 
+<nl>
+    OwnershipTransferred(owner, pendingOwner);
+    owner = pendingOwner;
+    pendingOwner = address(0);
+  
+<nl>
+    allowed[msg.sender][_spender] = (
+      allowed[msg.sender][_spender].add(_addedValue));
+    emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+    return true;
+  
+<nl>
+        migrationPhase = false;
+    
+<nl>
+    require(newOwner != address(0));
+    emit OwnershipTransferred(owner, newOwner);
+    owner = newOwner;
+  
+<nl>return _owner; 
+<nl>
+        IERC20 token = IERC20(_tokenAddress);
+        token.transfer(_to, _amount);
+    
+<nl>
+    	return numberOfAccounts;
+    
+<nl>
+        require(_to != 0x0);
+        require(balanceOf[_from] >= _value);
+        require(balanceOf[_to] + _value > balanceOf[_to]);
+        uint previousBalances = balanceOf[_from] + balanceOf[_to];
+        balanceOf[_from] -= _value;
+        balanceOf[_to] += _value;
+        Transfer(_from, _to, _value);
+        assert(balanceOf[_from] + balanceOf[_to] == previousBalances);
+    
+<nl>

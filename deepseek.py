@@ -82,8 +82,10 @@ def run(args):
             ]
         else:
             sources = [
-                codellama_build_masked_func(masked_contract)
-                for masked_contract in dataset['masked_contract']
+                # codellama_build_masked_func(masked_contract)
+                # for masked_contract in dataset['masked_contract']
+                codellama_build_masked_func(instruction) + '\n' + output + '\n<correct>'
+                for (instruction, output) in zip(dataset['masked_contract'], dataset['codellama_ouput'])
             ]
 
     batch_list = split_batch(sources, args.batch_size)
