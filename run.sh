@@ -7,7 +7,7 @@ DS_SKIP_CUDA_CHECK=1 deepspeed finetune_deepseek.py \
     --data_path $DATA_PATH \
     --output_dir $OUTPUT_PATH \
     --num_train_epochs $1 \
-    --model_max_length 4096 \
+    --model_max_length 2048 \
     --per_device_train_batch_size $2 \
     --per_device_eval_batch_size 1 \
     --gradient_accumulation_steps 4 \
