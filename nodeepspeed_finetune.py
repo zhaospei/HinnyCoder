@@ -128,8 +128,10 @@ def deepseek_train_tokenize_function(examples, tokenizer):
 def codellama_train_tokenize_function(examples, tokenizer):
     sources = [
         # codellama_build_masked_func(instruction) + '\n' + output + '\n<correct>'
-        codellama_build_masked_func(instruction)
-        for instruction in examples['masked_contract']
+        # codellama_build_masked_func(instruction)
+        # for instruction in examples['masked_contract']
+        codellama_build_masked_func(instruction) + '\n' + output + '\n<correct>'
+        for (instruction, output) in zip(examples['masked_contract'], examples['codellama_ouput'])
     ]
     targets = [f"{output}\n▁<EOT>" for output in examples['func_body']]
     data_dict = preprocess(sources, targets, tokenizer)
