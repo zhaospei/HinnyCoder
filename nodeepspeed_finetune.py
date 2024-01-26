@@ -196,16 +196,16 @@ def train(args):
     #     cache_dir=training_args.cache_dir
     # )
 
-    if args.task == 'train':
-        raw_train_datasets = load_dataset(
-            args.data_path,
-            split="train",
-        )
-    else:
-        raw_train_datasets = load_dataset(
-            args.data_path,
-            split="train[:5%]",
-        )
+    # if args.task == 'train':
+    raw_train_datasets = load_dataset(
+        args.data_path,
+        split="train",
+    )
+    # else:
+    #     raw_train_datasets = load_dataset(
+    #         args.data_path,
+    #         split="train[:5%]",
+    #     )
 
     # if training_args.local_rank > 0: 
     #     torch.distributed.barrier()
