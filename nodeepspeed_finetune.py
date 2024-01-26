@@ -116,13 +116,21 @@ class DataCollatorForSupervisedDataset(object):
             attention_mask=input_ids.ne(self.tokenizer.pad_token_id),
         )
 
-def deepseek_train_tokenize_function(examples, tokenizer):
-    sources = [
-        deepseek_build_masked_func(instruction) + '\n' + output + '\n<correct>'
-        for (instruction, output) in zip(examples['masked_contract'], examples['deepseek_output'])
-    ]
-    targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
-    data_dict = preprocess(sources, targets, tokenizer)
+def deepseek_train_tokenize_function(examples, tokenizer, task):
+    if 'refine' in task:
+        sources = [
+            deepseek_build_masked_func(instruction) + '\n' + output + '\n<correct>'
+            for (instruction, output) in zip(examples['masked_contract'], examples['deepseek_output'])
+        ]
+        targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
+        data_dict = preprocess(sources, targets, tokenizer)
+    else:
+        sources = [
+            deepseek_build_masked_func(instruction)
+            for instruction in examples['masked_contract']
+        ]
+        targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
+        data_dict = preprocess(sources, targets, tokenizer)
     return data_dict
 
 def codellama_train_tokenize_function(examples, tokenizer):
@@ -211,7 +219,7 @@ def train(args):
             remove_columns=raw_train_datasets.column_names,
             load_from_cache_file=True, # not args.overwrite_cache
             desc="Running Encoding",
-            fn_kwargs={ "tokenizer": tokenizer }
+            fn_kwargs={ "tokenizer": tokenizer , "task": args.task}
         )
     else:
         train_dataset = raw_train_datasets.map(
@@ -317,7 +325,7 @@ def train(args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--task", type=str, default='train')
+    parser.add_argument("--task", type=str, default='finetune')
     parser.add_argument("--batch_size", default=1, type=int,
                         help="Batch size per GPU/CPU for training.")
     parser.add_argument("--load_in_8bit", action='store_true',
