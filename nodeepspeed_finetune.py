@@ -318,8 +318,8 @@ def train(args):
     )
 
     # Start training
-    if args.task == 'train': 
-        trainer.train()
+    # if args.task == 'train': 
+    trainer.train()
 
     model.save_pretrained(training_args.output_dir)
 
