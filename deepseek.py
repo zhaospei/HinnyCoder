@@ -44,7 +44,8 @@ def run(args):
     else:
         model = AutoModelForCausalLM.from_pretrained(model_id, trust_remote_code=True, torch_dtype=torch.bfloat16, device_map='auto').cuda()
     
-    if args.task == 'gen_finetune':
+    if args.model_peft != '':
+        print('Loading peft model from ', args.model_peft)
         model = PeftModel.from_pretrained(model, args.model_peft)
 
     model.eval()
@@ -100,7 +101,7 @@ def run(args):
             
 
             if args.task == 'gen_baseline':
-                generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.pad_token_id)
+                generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.pad_token_id, eos_token_id=32021)
             else:
                 if 'deepseek' in args.model_id:
                     generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.pad_token_id, eos_token_id=32021)
