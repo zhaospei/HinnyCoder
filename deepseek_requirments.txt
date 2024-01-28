@@ -6,7 +6,7 @@ sympy==1.12
 pebble 
 timeout-decorator 
 attrdict
-datasets
+datasets>=2.14.5
 accelerate
 bitsandbytes
 peft
