@@ -119,8 +119,8 @@ class DataCollatorForSupervisedDataset(object):
 def deepseek_train_tokenize_function(examples, tokenizer, task):
     if 'refine' in task:
         sources = [
-            deepseek_build_masked_func(instruction) + '\n' + output + '\n<correct>'
-            for (instruction, output) in zip(examples['masked_contract'], examples['deepseek_output'])
+            deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + compile_info + '\n<correct> '
+            for (instruction, output, compile_info) in zip(examples['masked_contract'], examples['deepseek_output'], examples['compile_info'])
         ]
         targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
         data_dict = preprocess(sources, targets, tokenizer)
