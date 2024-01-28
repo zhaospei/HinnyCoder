@@ -18,6 +18,11 @@ END_TOKEN = "<｜fim▁end｜>"
 IGNORE_INDEX = -100
 EOT_TOKEN = "<|EOT|>"
 
+def deepseek_build_output_compiler(output: str):
+    output = output.replace('<COMPILED_SUCCESSFULLY>', 'success')
+    output = ' '.join(output.split()[:30])
+    return output
+
 def deepseek_build_masked_func(masked_func: str):
     masked_func = masked_func.replace('<FILL_FUNCTION_BODY>', FILL_TOKEN)
     return BEGIN_TOKEN + masked_func + END_TOKEN
@@ -119,7 +124,7 @@ class DataCollatorForSupervisedDataset(object):
 def deepseek_train_tokenize_function(examples, tokenizer, task):
     if 'refine' in task:
         sources = [
-            deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + compile_info + '\n<correct> '
+            deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<correct> '
             for (instruction, output, compile_info) in zip(examples['masked_contract'], examples['deepseek_output'], examples['compile_info'])
         ]
         targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
