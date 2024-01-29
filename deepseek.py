@@ -14,6 +14,11 @@ END_TOKEN = "<｜fim▁end｜>"
 IGNORE_INDEX = -100
 EOT_TOKEN = "<|EOT|>"
 
+def deepseek_build_output_compiler(output: str):
+    output = output.replace('<COMPILED_SUCCESSFULLY>', 'success')
+    output = ' '.join(output.split()[:30])
+    return output
+
 def deepseek_build_masked_func(masked_func: str):
     masked_func = masked_func.replace('<FILL_FUNCTION_BODY>', FILL_TOKEN)
     return BEGIN_TOKEN + masked_func + END_TOKEN
@@ -78,15 +83,13 @@ def run(args):
     else:
         if 'deepseek' in args.model_id:
             sources = [
-                deepseek_build_masked_func(instruction) + '\n' + output + '\n<correct>'
-                for (instruction, output) in zip(dataset['masked_contract'], dataset['deepseek_output'])
+                deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<correct> '
+                for (instruction, output, compile_info) in zip(dataset['masked_contract'], dataset['deepseek_output'], dataset['compile_info'])
             ]
         else:
             sources = [
-                # codellama_build_masked_func(masked_contract)
-                # for masked_contract in dataset['masked_contract']
-                codellama_build_masked_func(instruction) + '\n' + output + '\n<correct>'
-                for (instruction, output) in zip(dataset['masked_contract'], dataset['codellama_ouput'])
+                deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<correct> '
+                for (instruction, output, compile_info) in zip(dataset['masked_contract'], dataset['deepseek_output'], dataset['compile_info'])
             ]
 
     batch_list = split_batch(sources, args.batch_size)
