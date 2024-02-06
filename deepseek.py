@@ -104,7 +104,7 @@ def run(args):
             
 
             if args.task == 'gen_baseline':
-                generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.pad_token_id, eos_token_id=32021)
+                generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.pad_token_id)
             else:
                 if 'deepseek' in args.model_id:
                     generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.pad_token_id, eos_token_id=32021)
@@ -139,9 +139,9 @@ def main():
     parser.add_argument("--model_id", type=str, default='deepseek-ai/deepseek-coder-6.7b-base')
     parser.add_argument("--dataset_id", type=str, default='zhaospei/smart-contract-gen')
     parser.add_argument("--output_file", type=str, default="gen.output")
-    parser.add_argument("--max_length", type=int, default=2048)
+    parser.add_argument("--max_length", type=int, default=2100)
     parser.add_argument("--padding", type=str, default='longest')
-    parser.add_argument("--max_new_tokens", type=int, default=128)
+    parser.add_argument("--max_new_tokens", type=int, default=256)
     parser.add_argument("--data_split", type=str, default='test')
     args = parser.parse_args()
     run(args)

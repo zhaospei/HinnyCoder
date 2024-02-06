@@ -237,7 +237,6 @@ def train(args):
             desc="Running Encoding",
             fn_kwargs={ "tokenizer": tokenizer }
         )
-
     # if training_args.local_rank == 0:
     #     torch.distributed.barrier()
     
@@ -295,6 +294,7 @@ def train(args):
     }
 
     model.train()
+
 
     # Define training args
     training_args = transformers.TrainingArguments(
