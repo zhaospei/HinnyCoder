@@ -9,3 +9,5 @@ scg-data/
 *.csv
 *.parquet
 codellama-fintune-v1/
+adapter/
+*.ipynb
