@@ -20,7 +20,7 @@ EOT_TOKEN = "<|EOT|>"
 
 def deepseek_build_output_compiler(output: str):
     output = output.replace('<COMPILED_SUCCESSFULLY>', 'success')
-    output = ' '.join(output.split()[:30])
+    # output = ' '.join(output.split()[:30])
     return output
 
 def deepseek_build_masked_func(masked_func: str):
@@ -204,7 +204,7 @@ def train(args):
     # if args.task == 'train':
     raw_train_datasets = load_dataset(
         args.data_path,
-        split="train",
+        split=args.data_split,
     )
     # else:
     #     raw_train_datasets = load_dataset(
@@ -340,6 +340,7 @@ def main():
     parser.add_argument("--output_file", type=str, default="gen.output")
     parser.add_argument("--output_dir", type=str, default='tmp/scg-13-01-24')
     parser.add_argument("--model_max_length", type=int, default=2048)
+    parser.add_argument("--data_split", type=str, default='train')
     parser.add_argument("--epochs", type=int, default=1)
     args = parser.parse_args()
     train(args)
