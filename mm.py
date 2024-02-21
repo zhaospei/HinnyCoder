@@ -1,7 +1,9 @@
 # import datasets
 # from tqdm import tqdm
+# import pandas as pd
 
-# raw = datasets.load_dataset('lvdthieu/compile_error_and_inherit_element', split='test')
+# # raw = datasets.load_dataset('lvdthieu/compile_error_and_inherit_element', split='test')
+# raw = pd.read_parquet(f'test_refine+.parquet', engine='fastparquet')
 
 # from transformers import AutoTokenizer, AutoModelForCausalLM
 # model_id = 'deepseek-ai/deepseek-coder-6.7b-base'
@@ -13,7 +15,7 @@
 
 
 # with tqdm(total=len(raw), desc="gen") as pbar:
-#     for row in raw:
+#     for _, row in raw.iterrows():
 #         # print(type(row['inherit_elements']))
 #         # cc = 
 #         ll = row['inherit_elements'][1:-1]
@@ -66,6 +68,6 @@ api = HfApi()
 api.upload_file(
     path_or_fileobj="test.jsonl",
     path_in_repo="test.jsonl",
-    repo_id="zhaospei/all_you_want",
+    repo_id="zhaospei/data-50k-test-final-gen2",
     repo_type="dataset",
 )

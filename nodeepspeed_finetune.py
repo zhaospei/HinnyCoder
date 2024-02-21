@@ -136,6 +136,13 @@ def deepseek_train_tokenize_function(examples, tokenizer, task):
         ]
         targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
         data_dict = preprocess(sources, targets, tokenizer)
+    elif 'disable' in task:
+        sources = [
+            deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<inherit>\n' + inherit_elements + '\n<correct> '
+            for (instruction, output, compile_info, inherit_elements) in zip(examples['masked_contract'], examples['deepseek_output'], examples['compile_info'], examples['inherit_elements'])
+        ]
+        targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
+        data_dict = preprocess(sources, targets, tokenizer)
     else:
         sources = [
             deepseek_build_masked_func(instruction)
