@@ -125,28 +125,28 @@ def deepseek_train_tokenize_function(examples, tokenizer, task):
     if 'refine' in task:
         sources = [
             deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<correct> '
-            for (instruction, output, compile_info) in zip(examples['masked_contract'], examples['deepseek_output'], examples['compile_info'])
+            for (instruction, output, compile_info) in zip(examples['masked_class'], examples['deepseek_output'], examples['compile_info'])
         ]
         targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
         data_dict = preprocess(sources, targets, tokenizer)
     elif 'final' in task:
         sources = [
             deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<inherit>\n' + inherit_elements + '\n<correct> '
-            for (instruction, output, compile_info, inherit_elements) in zip(examples['masked_contract'], examples['deepseek_output'], examples['compile_info'], examples['inherit_elements'])
+            for (instruction, output, compile_info, inherit_elements) in zip(examples['masked_class'], examples['deepseek_output'], examples['compile_info'], examples['inherit_elements'])
         ]
         targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
         data_dict = preprocess(sources, targets, tokenizer)
     elif 'disable' in task:
         sources = [
             deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<inherit>\n' + inherit_elements + '\n<correct> '
-            for (instruction, output, compile_info, inherit_elements) in zip(examples['masked_contract'], examples['deepseek_output'], examples['compile_info'], examples['inherit_elements'])
+            for (instruction, output, compile_info, inherit_elements) in zip(examples['masked_class'], examples['deepseek_output'], examples['compile_info'], examples['inherit_elements'])
         ]
         targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
         data_dict = preprocess(sources, targets, tokenizer)
     else:
         sources = [
             deepseek_build_masked_func(instruction)
-            for instruction in examples['masked_contract']
+            for instruction in examples['masked_class']
         ]
         targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
         data_dict = preprocess(sources, targets, tokenizer)
@@ -156,9 +156,9 @@ def codellama_train_tokenize_function(examples, tokenizer):
     sources = [
         # codellama_build_masked_func(instruction) + '\n' + output + '\n<correct>'
         # codellama_build_masked_func(instruction)
-        # for instruction in examples['masked_contract']
+        # for instruction in examples['masked_class']
         codellama_build_masked_func(instruction) + '\n' + output + '\n<correct>'
-        for (instruction, output) in zip(examples['masked_contract'], examples['codellama_ouput'])
+        for (instruction, output) in zip(examples['masked_class'], examples['codellama_ouput'])
     ]
     targets = [f"{output}\n▁<EOT>" for output in examples['func_body']]
     data_dict = preprocess(sources, targets, tokenizer)
