@@ -80,7 +80,7 @@ def run(args):
                 for masked_class in dataset['masked_class']
             ]
             # print(sources)
-    elif args.taks == 'gen_finetune':
+    elif args.task == 'gen_finetune':
         if 'deepseek' in args.model_id:
             sources = [
                 deepseek_build_masked_func(masked_class)
