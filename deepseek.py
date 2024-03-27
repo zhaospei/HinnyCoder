@@ -80,6 +80,17 @@ def run(args):
                 for masked_class in dataset['masked_class']
             ]
             # print(sources)
+    elif args.taks == 'gen_finetune':
+        if 'deepseek' in args.model_id:
+            sources = [
+                deepseek_build_masked_func(masked_class)
+                for masked_class in dataset['masked_class']
+            ]
+        else:
+            sources = [
+                codellama_build_masked_func(masked_class)
+                for masked_class in dataset['masked_class']
+            ]
     elif args.task == 'gen_final':
         sources = [
             deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<inherit>\n' + inherit_elements + '\n<correct> '
@@ -115,6 +126,11 @@ def run(args):
 
             if args.task == 'gen_baseline':
                 generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.pad_token_id, eos_token_id=tokenizer.eos_token_id)
+            elif args.task == 'gen_fintune':
+                if 'deepseek' in args.model_id:
+                    generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.pad_token_id, eos_token_id=32021)
+                else:
+                    generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.eos_token_id)
             else:
                 if 'deepseek' in args.model_id:
                     generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.pad_token_id, eos_token_id=32021)
