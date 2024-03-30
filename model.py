@@ -1,41 +1,65 @@
 import pandas as pd
 import torch
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, Sequence
+
 from torch import nn
+import transformers
 from transformers import DefaultDataCollator
 from transformers import Trainer
+from dataclasses import dataclass, field
+IGNORE_INDEX = -100
 
+@dataclass
+class DataCollatorForDualObjectiveDataset(object):
+    """Collate examples for dual objective fine-tuning."""
+    tokenizer: transformers.PreTrainedTokenizer
 
-class DualObjectiveDataCollator(DefaultDataCollator):
-    def __call__(self, features, return_tensors=None):
-        features_df = pd.DataFrame(features)
-        des_features = features_df.loc[:, ~features_df.columns.isin(['type_labels', 'type_input_ids', 'type_attention_mask'])].to_dict('records')
-        type_features = features_df.loc[:, ~features_df.columns.isin(['labels', 'input_ids', 'attention_mask'])].rename(
-            columns={'type_labels': 'labels', 'type_input_ids': 'input_ids', 'type_attention_mask': 'attention_mask'}).to_dict('records')
-
-        des_features = super().__call__(des_features, return_tensors)
-        type_features = super().__call__(type_features, return_tensors)
-
+    def __call__(self, instances: Sequence[Dict]) -> Dict[str, torch.Tensor]:
+        func_input_ids, func_labels, class_input_ids, func_labels = tuple([instance[key] for instance in instances] for key in ("func_input_ids","func_labels","class_input_ids", "class_labels"))
+        
+        #func_input_preprocess
+        func_input_ids = [torch.tensor(x) for x in func_input_ids]
+        func_input_ids = torch.nn.utils.rnn.pad_sequence(
+            func_input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
+        )
+        func_labels = [torch.tensor(x) for x in func_labels]
+        func_labels = torch.nn.utils.rnn.pad_sequence(func_labels, batch_first=True, padding_value=IGNORE_INDEX)
+        
+        #class_input_preprocess
+        class_input_ids = [torch.tensor(x) for x in class_input_ids]
+        class_input_ids = torch.nn.utils.rnn.pad_sequence(
+            class_input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
+        )
+        class_labels = [torch.tensor(x) for x in class_labels]
+        class_labels = torch.nn.utils.rnn.pad_sequence(class_labels, batch_first=True, padding_value=IGNORE_INDEX)
         return {
-            'des': des_features,
-            'type': type_features,
+            'func':  dict(
+                input_ids=func_input_ids, 
+                labels=func_labels, 
+                attention_mask=func_input_ids.ne(self.tokenizer.pad_token_id),
+            ),
+            'class': dict(
+                input_ids=class_input_ids, 
+                labels=class_labels, 
+                attention_mask=class_input_ids.ne(self.tokenizer.pad_token_id),
+            ),
         }
 
 
 class DualObjectiveTrainer(Trainer):
-    def __init__(self, alpha, output_type, **kwargs):
+    def __init__(self, alpha, output_function, **kwargs):
         super().__init__(**kwargs)
         self.alpha = alpha
-        self.output_type = output_type
+        self.output_function = output_function
 
 
     def compute_loss(self, model, inputs, return_outputs=False):
-        des_outputs = model(**inputs['des'])
-        type_outputs = model(**inputs['type'])
+        class_outputs = model(**inputs['class'])
+        func_outputs = model(**inputs['func'])
         
-        loss = self.alpha * des_outputs.loss + (1. - self.alpha) * type_outputs.loss
+        loss = self.alpha * class_outputs.loss + (1. - self.alpha) * func_outputs.loss
 
-        return (loss, {'des': des_outputs, 'type': type_outputs}) if return_outputs else loss
+        return (loss, {'class': class_outputs, 'func': func_outputs}) if return_outputs else loss
 
 
     def prediction_step(
@@ -46,16 +70,16 @@ class DualObjectiveTrainer(Trainer):
         ignore_keys: Optional[List[str]] = None
     ) -> Tuple[Optional[float], Optional[torch.Tensor], Optional[torch.Tensor]]:
         
-        des_outputs = super().prediction_step(model, inputs['des'], prediction_loss_only=False, ignore_keys=ignore_keys)
-        if self.output_rationale:
-            type_outputs = super().prediction_step(model, inputs['type'], prediction_loss_only=False, ignore_keys=ignore_keys)
+        class_outputs = super().prediction_step(model, inputs['class'], prediction_loss_only=False, ignore_keys=ignore_keys)
+        if self.output_function:
+            func_outputs = super().prediction_step(model, inputs['func'], prediction_loss_only=False, ignore_keys=ignore_keys)
         else:
-            type_outputs = des_outputs # placeholder only
+            func_outputs = class_outputs # placeholder only
 
-        loss = self.alpha * des_outputs[0]  + (1 - self.alpha) * type_outputs[0]
+        loss = self.alpha * class_outputs[0]  + (1 - self.alpha) * class_outputs[0]
 
         return (
             loss,
-            [des_outputs[1], type_outputs[1]],
-            [des_outputs[2], type_outputs[2]],
+            [class_outputs[1], func_outputs[1]],
+            [class_outputs[2], func_outputs[2]],
         )
