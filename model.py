@@ -15,7 +15,7 @@ class DataCollatorForDualObjectiveDataset(object):
     tokenizer: transformers.PreTrainedTokenizer
 
     def __call__(self, instances: Sequence[Dict]) -> Dict[str, torch.Tensor]:
-        func_input_ids, func_labels, class_input_ids, func_labels = tuple([instance[key] for instance in instances] for key in ("func_input_ids","func_labels","class_input_ids", "class_labels"))
+        func_input_ids, func_labels, class_input_ids, class_labels = tuple([instance[key] for instance in instances] for key in ("func_input_ids","func_labels","class_input_ids", "class_labels"))
         
         #func_input_preprocess
         func_input_ids = [torch.tensor(x) for x in func_input_ids]
