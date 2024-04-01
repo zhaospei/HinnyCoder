@@ -234,6 +234,7 @@ def train(args):
         save_strategy="no",
         optim="adamw_torch",
         max_steps= -1,
+        remove_unused_columns=False,
         **{k:v for k,v in config.items() if k != 'lora_config'}
     )
 
