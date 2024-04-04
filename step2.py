@@ -172,7 +172,6 @@ def train(args):
         step2_train_tokenize_function,
         batched=True,
         batch_size=3000,
-        num_proc=32,
         remove_columns=raw_train_datasets.column_names,
         load_from_cache_file=True, # not args.overwrite_cache
         desc="Running Encoding",
