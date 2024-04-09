@@ -11,3 +11,4 @@ scg-data/
 codellama-fintune-v1/
 adapter/
 *.ipynb
+server/

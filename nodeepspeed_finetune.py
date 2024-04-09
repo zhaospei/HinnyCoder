@@ -341,6 +341,8 @@ def train(args):
     trainer.train()
 
     model.save_pretrained(training_args.output_dir)
+    # trainer.model.push_to_hub("zhaospei/data-50k-finetune")
+    # trainer.tokenizer.push_to_hub("zhaospei/data-50k-finetune")
 
 def main():
     parser = argparse.ArgumentParser()
