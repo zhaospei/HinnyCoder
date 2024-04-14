@@ -3,7 +3,6 @@ import random
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Sequence
 from peft import PeftModel
-from peft import prepare_model_for_int8_training
 
 import torch
 import torch.distributed
