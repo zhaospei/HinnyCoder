@@ -65,7 +65,7 @@ def run(args):
         model = PeftModel.from_pretrained(model, args.model_peft)
 
     model.eval()
-    if 'codellama' in args.model_id:
+    if 'codellama' in args.model_id or 'star' in args.model_id:
         tokenizer.pad_token_id = tokenizer.eos_token_id
     tokenizer.padding_side = "left" # Fix weird overflow issue with fp16 training
 
