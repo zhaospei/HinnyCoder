@@ -177,8 +177,8 @@ def codellama_train_tokenize_function(examples, tokenizer):
 
 def gemma_train_tokenize_function(examples, tokenizer):
     sources = [
-        codellama_build_masked_func(instruction) + '\n' + output + '\n<correct>'
-        for (instruction, output) in zip(examples['masked_contract'], examples['codellama_ouput'])
+        gemma_build_masked_func(instruction)
+            for instruction in examples['masked_contract']
     ]
     targets = [f"{output}\n" + tokenizer.eos_token for output in examples['func_body']]
     print(targets)
