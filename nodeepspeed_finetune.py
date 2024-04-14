@@ -181,7 +181,7 @@ def gemma_train_tokenize_function(examples, tokenizer):
             for instruction in examples['masked_contract']
     ]
     targets = [f"{output}\n" + tokenizer.eos_token for output in examples['func_body']]
-    print(targets)
+    # print(targets)
     data_dict = preprocess(sources, targets, tokenizer)
     return data_dict
 
