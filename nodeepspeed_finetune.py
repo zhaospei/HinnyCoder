@@ -312,7 +312,7 @@ def train(args):
             model.print_trainable_parameters()
             return model, peft_config
         model, lora_config = create_peft_config(model)
-    elif 'star' in args.args.model_name_or_path:
+    elif 'star' in args.model_name_or_path:
         def create_peft_config(model):
             from peft import (
                 get_peft_model,
