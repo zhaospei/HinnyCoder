@@ -29,6 +29,18 @@ def codellama_build_masked_func(masked_func):
     prefix_tokens, suffix_tokens = masked_func.split('<FILL_FUNCTION_BODY>')
     return '▁<PRE>' + prefix_tokens + '▁<SUF>' + suffix_tokens + '▁<MID>'
 
+def gemma_build_masked_func(masked_func):
+    # masked_func = masked_func.replace('<FILL_FUNCTION_BODY>', '<FILL_ME>')
+    # return masked_func
+    prefix_tokens, suffix_tokens = masked_func.split('<FILL_FUNCTION_BODY>')
+    return '<|fim_prefix|>' + prefix_tokens + '<|fim_suffix|>' + suffix_tokens + '<|fim_middle|>'
+
+def starcoder_build_masked_func(masked_func):
+    # masked_func = masked_func.replace('<FILL_FUNCTION_BODY>', '<FILL_ME>')
+    # return masked_func
+    prefix_tokens, suffix_tokens = masked_func.split('<FILL_FUNCTION_BODY>')
+    return '<fim_prefix>' + prefix_tokens + '<fim_suffix>' + suffix_tokens + '<fim_middle>'
+
 def split_batch(iterable, n=1):
     l = len(iterable)
     for ndx in range(0, l, n):
@@ -74,11 +86,22 @@ def run(args):
                 deepseek_build_masked_func(masked_class)
                 for masked_class in dataset['masked_class']
             ]
-        else:
+        elif 'llama' in args.model_id:
             sources = [
                 codellama_build_masked_func(masked_class)
                 for masked_class in dataset['masked_class']
             ]
+        elif 'gemma' in args.model_id:
+            sources = [
+                gemma_build_masked_func(masked_class)
+                for masked_class in dataset['masked_class']
+            ]
+        else:
+            sources = [
+                starcoder_build_masked_func(masked_class)
+                for masked_class in dataset['masked_class']
+            ]
+            # print(sources)
             # print(sources)
     elif args.task == 'gen_finetune':
         if 'deepseek' in args.model_id:
