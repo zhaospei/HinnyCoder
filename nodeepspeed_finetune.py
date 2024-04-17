@@ -179,7 +179,7 @@ def codellama_train_tokenize_function(examples, tokenizer):
 def gemma_train_tokenize_function(examples, tokenizer):
     sources = [
         gemma_build_masked_func(instruction)
-            for instruction in examples['masked_contract']
+            for instruction in examples['masked_class']
     ]
     targets = [f"{output}\n" + tokenizer.eos_token for output in examples['func_body']]
     # print(targets)
@@ -189,7 +189,7 @@ def gemma_train_tokenize_function(examples, tokenizer):
 def starcoder_train_tokenize_function(examples, tokenizer):
     sources = [
         starcoder_build_masked_func(instruction)
-            for instruction in examples['masked_contract']
+            for instruction in examples['masked_class']
     ]
     targets = [f"{output}\n" + tokenizer.eos_token for output in examples['func_body']]
     # print(targets)
