@@ -33,6 +33,18 @@ def codellama_build_masked_func(masked_func):
     prefix_tokens, suffix_tokens = masked_func.split('<FILL_FUNCTION_BODY>')
     return '▁<PRE>' + prefix_tokens + '▁<SUF>' + suffix_tokens + '▁<MID>'
 
+def gemma_build_masked_func(masked_func):
+    # masked_func = masked_func.replace('<FILL_FUNCTION_BODY>', '<FILL_ME>')
+    # return masked_func
+    prefix_tokens, suffix_tokens = masked_func.split('<FILL_FUNCTION_BODY>')
+    return '<|fim_prefix|>' + prefix_tokens + '<|fim_suffix|>' + suffix_tokens + '<|fim_middle|>'
+
+def starcoder_build_masked_func(masked_func):
+    # masked_func = masked_func.replace('<FILL_FUNCTION_BODY>', '<FILL_ME>')
+    # return masked_func
+    prefix_tokens, suffix_tokens = masked_func.split('<FILL_FUNCTION_BODY>')
+    return '<fim_prefix>' + prefix_tokens + '<fim_suffix>' + suffix_tokens + '<fim_middle>'
+
 @dataclass
 class ModelArguments:
     model_name_or_path: Optional[str] = field(default="deepseek-ai/deepseek-coder-6.7b-instruct")
@@ -164,6 +176,26 @@ def codellama_train_tokenize_function(examples, tokenizer):
     data_dict = preprocess(sources, targets, tokenizer)
     return data_dict
 
+def gemma_train_tokenize_function(examples, tokenizer):
+    sources = [
+        gemma_build_masked_func(instruction)
+            for instruction in examples['masked_contract']
+    ]
+    targets = [f"{output}\n" + tokenizer.eos_token for output in examples['func_body']]
+    # print(targets)
+    data_dict = preprocess(sources, targets, tokenizer)
+    return data_dict
+
+def starcoder_train_tokenize_function(examples, tokenizer):
+    sources = [
+        starcoder_build_masked_func(instruction)
+            for instruction in examples['masked_contract']
+    ]
+    targets = [f"{output}\n" + tokenizer.eos_token for output in examples['func_body']]
+    # print(targets)
+    data_dict = preprocess(sources, targets, tokenizer)
+    return data_dict
+
 def train(args):
     # parser = transformers.HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
     # model_args, data_args, training_args = parser.parse_args_into_dataclasses()
@@ -187,10 +219,10 @@ def train(args):
         trust_remote_code=True
     )
 
-    if 'codellama' in args.model_name_or_path:
+    if 'codellama' in args.model_name_or_path or 'star' in args.model_name_or_path:
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
-    print(tokenizer)
+    # print(tokenizer)
 
     print("PAD Token:", tokenizer.pad_token, tokenizer.pad_token_id)
     print("BOS Token", tokenizer.bos_token, tokenizer.bos_token_id)
@@ -220,14 +252,6 @@ def train(args):
         args.data_path,
         split=args.data_split,
     )
-    # else:
-    #     raw_train_datasets = load_dataset(
-    #         args.data_path,
-    #         split="train[:5%]",
-    #     )
-
-    # if training_args.local_rank > 0: 
-    #     torch.distributed.barrier()
 
     if 'deepseek' in args.model_name_or_path:  
         train_dataset = raw_train_datasets.map(
@@ -240,7 +264,7 @@ def train(args):
             desc="Running Encoding",
             fn_kwargs={ "tokenizer": tokenizer , "task": args.task}
         )
-    else:
+    elif 'llama' in args.model_name_or_path:
         train_dataset = raw_train_datasets.map(
             codellama_train_tokenize_function,
             batched=True,
@@ -251,50 +275,106 @@ def train(args):
             desc="Running Encoding",
             fn_kwargs={ "tokenizer": tokenizer }
         )
-    # if training_args.local_rank == 0:
-    #     torch.distributed.barrier()
-    
-    # if training_args.local_rank == 0:
-    #     print("Training dataset samples:", len(train_dataset))
-    #     for index in random.sample(range(len(train_dataset)), 3):
-    #         print(f"Sample {index} of the training set: {train_dataset[index]['input_ids']}, {train_dataset[index]['labels']}.")
-    #         print(f"Sample {index} of the training set: {tokenizer.decode(list(train_dataset[index]['input_ids']))}.")
+    elif 'gemma' in args.model_name_or_path:
+        train_dataset = raw_train_datasets.map(
+            gemma_train_tokenize_function,
+            batched=True,
+            batch_size=3000,
+            num_proc=32,
+            remove_columns=raw_train_datasets.column_names,
+            load_from_cache_file=True, # not args.overwrite_cache
+            desc="Running Encoding",
+            fn_kwargs={ "tokenizer": tokenizer }
+        )
+    elif 'star' in args.model_name_or_path:
+        train_dataset = raw_train_datasets.map(
+            starcoder_train_tokenize_function,
+            batched=True,
+            batch_size=3000,
+            num_proc=32,
+            remove_columns=raw_train_datasets.column_names,
+            load_from_cache_file=True, # not args.overwrite_cache
+            desc="Running Encoding",
+            fn_kwargs={ "tokenizer": tokenizer }
+        )
 
     data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer)
-    # data_module = dict(train_dataset=train_dataset, eval_dataset=None, data_collator=data_collator)
 
-    # trainer = Trainer(model=model, tokenizer=tokenizer, args=training_args, **data_module)
+    if 'gemma' in args.model_name_or_path:
+        def create_peft_config(model):
+            from peft import (
+                get_peft_model,
+                LoraConfig,
+                TaskType,
+                prepare_model_for_kbit_training,
+            )
 
-    # trainer.train()
-    # trainer.save_state()
-    # safe_save_model_for_hf_trainer(trainer=trainer, output_dir=training_args.output_dir)
+            peft_config = LoraConfig(
+                task_type=TaskType.CAUSAL_LM,
+                inference_mode=False,
+                r=8,
+                lora_alpha=32,
+                lora_dropout=0.05,
+                target_modules = ["q_proj", "o_proj", "k_proj", "v_proj", "gate_proj", "up_proj", "down_proj"]
+            )
 
-    def create_peft_config(model):
-        from peft import (
-            get_peft_model,
-            LoraConfig,
-            TaskType,
-            prepare_model_for_kbit_training,
-        )
+            # prepare int-8 model for training
+            if args.load_in_8bit:
+                model = prepare_model_for_kbit_training(model)
+            model = get_peft_model(model, peft_config)
+            model.print_trainable_parameters()
+            return model, peft_config
+        model, lora_config = create_peft_config(model)
+    elif 'star' in args.model_name_or_path:
+        def create_peft_config(model):
+            from peft import (
+                get_peft_model,
+                LoraConfig,
+                TaskType,
+                prepare_model_for_kbit_training,
+            )
 
-        peft_config = LoraConfig(
-            task_type=TaskType.CAUSAL_LM,
-            inference_mode=False,
-            r=8,
-            lora_alpha=32,
-            lora_dropout=0.05,
-            target_modules = ["q_proj", "v_proj"]
-        )
+            peft_config = LoraConfig(
+                task_type=TaskType.CAUSAL_LM,
+                inference_mode=False,
+                r=8,
+                lora_alpha=32,
+                lora_dropout=0.05,
+                target_modules = ["c_proj", "c_attn", "q_attn"]
+            )
 
-        # prepare int-8 model for training
-        if args.load_in_8bit:
-            model = prepare_model_for_kbit_training(model)
-        model = get_peft_model(model, peft_config)
-        model.print_trainable_parameters()
-        return model, peft_config
+            # prepare int-8 model for training
+            if args.load_in_8bit:
+                model = prepare_model_for_kbit_training(model)
+            model = get_peft_model(model, peft_config)
+            model.print_trainable_parameters()
+            return model, peft_config
+        model, lora_config = create_peft_config(model)
+    else:
+        def create_peft_config(model):
+            from peft import (
+                get_peft_model,
+                LoraConfig,
+                TaskType,
+                prepare_model_for_kbit_training,
+            )
 
-    # create peft config
-    model, lora_config = create_peft_config(model)
+            peft_config = LoraConfig(
+                task_type=TaskType.CAUSAL_LM,
+                inference_mode=False,
+                r=8,
+                lora_alpha=32,
+                lora_dropout=0.05,
+                target_modules = ["q_proj", "v_proj"]
+            )
+
+            # prepare int-8 model for training
+            if args.load_in_8bit:
+                model = prepare_model_for_kbit_training(model)
+            model = get_peft_model(model, peft_config)
+            model.print_trainable_parameters()
+            return model, peft_config
+        model, lora_config = create_peft_config(model)
 
     output_dir = args.output_dir
 
@@ -350,10 +430,10 @@ def main():
     parser.add_argument("--load_in_8bit", action='store_true',
                         help="Load model 8 bit.")
     parser.add_argument("--model_name_or_path", type=str, default='deepseek-ai/deepseek-coder-6.7b-base')
-    parser.add_argument("--data_path", type=str, default='zhaospei/refine-v2')
+    parser.add_argument("--data_path", type=str, default='zhaospei/java-48k')
     parser.add_argument("--output_file", type=str, default="gen.output")
     parser.add_argument("--output_dir", type=str, default='tmp/scg-13-01-24')
-    parser.add_argument("--model_max_length", type=int, default=2048)
+    parser.add_argument("--model_max_length", type=int, default=2100)
     parser.add_argument("--data_split", type=str, default='train')
     parser.add_argument("--epochs", type=int, default=1)
     args = parser.parse_args()
