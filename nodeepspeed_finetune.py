@@ -175,24 +175,38 @@ def codellama_train_tokenize_function(examples, tokenizer):
     data_dict = preprocess(sources, targets, tokenizer)
     return data_dict
 
-def gemma_train_tokenize_function(examples, tokenizer):
-    sources = [
-        gemma_build_masked_func(instruction)
-            for instruction in examples['masked_contract']
-    ]
-    targets = [f"{output}\n" + tokenizer.eos_token for output in examples['func_body']]
-    # print(targets)
-    data_dict = preprocess(sources, targets, tokenizer)
+def gemma_train_tokenize_function(examples, tokenizer, task):
+    if 'refine' in task:
+        sources = [
+            gemma_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<correct> '
+            for (instruction, output, compile_info) in zip(examples['masked_contract'], examples['finetune_output'], examples['compile_info'])
+        ]
+        targets = [f"{output}\n" + tokenizer.eos_token for output in examples['func_body']]
+        data_dict = preprocess(sources, targets, tokenizer)
+    else:
+        sources = [
+            gemma_build_masked_func(instruction)
+                for instruction in examples['masked_contract']
+        ]
+        targets = [f"{output}\n" + tokenizer.eos_token for output in examples['func_body']]
+        data_dict = preprocess(sources, targets, tokenizer)
     return data_dict
 
-def starcoder_train_tokenize_function(examples, tokenizer):
-    sources = [
-        starcoder_build_masked_func(instruction)
-            for instruction in examples['masked_contract']
-    ]
-    targets = [f"{output}\n" + tokenizer.eos_token for output in examples['func_body']]
-    # print(targets)
-    data_dict = preprocess(sources, targets, tokenizer)
+def starcoder_train_tokenize_function(examples, tokenizer, task):
+    if 'refine' in task:
+        sources = [
+            starcoder_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<correct> '
+            for (instruction, output, compile_info) in zip(examples['masked_contract'], examples['finetune_output'], examples['compile_info'])
+        ]
+        targets = [f"{output}\n" + tokenizer.eos_token for output in examples['func_body']]
+        data_dict = preprocess(sources, targets, tokenizer)
+    else:
+        sources = [
+            starcoder_build_masked_func(instruction)
+                for instruction in examples['masked_contract']
+        ]
+        targets = [f"{output}\n" + tokenizer.eos_token for output in examples['func_body']]
+        data_dict = preprocess(sources, targets, tokenizer)
     return data_dict
 
 def train(args):
@@ -272,7 +286,7 @@ def train(args):
             remove_columns=raw_train_datasets.column_names,
             load_from_cache_file=True, # not args.overwrite_cache
             desc="Running Encoding",
-            fn_kwargs={ "tokenizer": tokenizer }
+            fn_kwargs={ "tokenizer": tokenizer, "task": args.task}
         )
     elif 'star' in args.model_name_or_path:
         train_dataset = raw_train_datasets.map(
@@ -283,7 +297,7 @@ def train(args):
             remove_columns=raw_train_datasets.column_names,
             load_from_cache_file=True, # not args.overwrite_cache
             desc="Running Encoding",
-            fn_kwargs={ "tokenizer": tokenizer }
+            fn_kwargs={ "tokenizer": tokenizer, "task": args.task}
         )
     data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer)
     
