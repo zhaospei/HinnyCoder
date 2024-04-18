@@ -115,10 +115,21 @@ def run(args):
                 for masked_class in dataset['masked_class']
             ]
     elif args.task == 'gen_final':
-        sources = [
-            deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<inherit>\n' + inherit_elements + '\n<correct> '
-            for (instruction, output, compile_info, inherit_elements) in zip(dataset['masked_class'], dataset['deepseek_output'], dataset['compile_info'], dataset['inherit_elements'])
-        ]
+        if 'deepseek' in args.model_id:
+            sources = [
+                deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<inherit>\n' + inherit_elements + '\n<correct> '
+                for (instruction, output, compile_info, inherit_elements) in zip(dataset['masked_class'], dataset['deepseek_output'], dataset['compile_info'], dataset['inherit_elements'])
+            ]
+        elif 'star' in args.model_id:
+            sources = [
+                starcoder_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<inherit>\n' + inherit_elements + '\n<correct> '
+                for (instruction, output, compile_info, inherit_elements) in zip(dataset['masked_class'], dataset['finetune_output'], dataset['compile_info'], dataset['inherit_elements'])
+            ]
+        elif 'gemma' in args.model_id:
+            sources = [
+                gemma_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<inherit>\n' + inherit_elements + '\n<correct> '
+                for (instruction, output, compile_info, inherit_elements) in zip(dataset['masked_class'], dataset['finetune_output'], dataset['compile_info'], dataset['inherit_elements'])
+            ]
     elif args.task == 'gen_disable':
         sources = [
             deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<inherit>\n' + inherit_elements + '\n<correct> '
