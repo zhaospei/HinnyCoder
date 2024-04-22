@@ -82,45 +82,45 @@ def run(args):
     if args.task == 'gen_baseline':
         if 'deepseek' in args.model_id:
             sources = [
-                deepseek_build_masked_func(masked_contract)
-                for masked_contract in dataset['masked_contract']
+                deepseek_build_masked_func(masked_class)
+                for masked_class in dataset['masked_class']
             ]
         elif 'llama' in args.model_id:
             sources = [
-                codellama_build_masked_func(masked_contract)
-                for masked_contract in dataset['masked_contract']
+                codellama_build_masked_func(masked_class)
+                for masked_class in dataset['masked_class']
             ]
         elif 'gemma' in args.model_id:
             sources = [
-                gemma_build_masked_func(masked_contract)
-                for masked_contract in dataset['masked_contract']
+                gemma_build_masked_func(masked_class)
+                for masked_class in dataset['masked_class']
             ]
         else:
             sources = [
-                starcoder_build_masked_func(masked_contract)
-                for masked_contract in dataset['masked_contract']
+                starcoder_build_masked_func(masked_class)
+                for masked_class in dataset['masked_class']
             ]
             # print(sources)
     elif args.task == 'gen_final':
         sources = [
             deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<inherit>\n' + inherit_elements + '\n<correct> '
-            for (instruction, output, compile_info, inherit_elements) in zip(dataset['masked_contract'], dataset['deepseek_output'], dataset['compile_info'], dataset['inherit_elements'])
+            for (instruction, output, compile_info, inherit_elements) in zip(dataset['masked_class'], dataset['deepseek_output'], dataset['compile_info'], dataset['inherit_elements'])
         ]
     elif args.task == 'gen_disable':
         sources = [
             deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<inherit>\n' + inherit_elements + '\n<correct> '
-            for (instruction, output, compile_info, inherit_elements) in zip(dataset['masked_contract'], dataset['deepseek_output'], dataset['compile_info'], dataset['inherit_elements'])
+            for (instruction, output, compile_info, inherit_elements) in zip(dataset['masked_class'], dataset['deepseek_output'], dataset['compile_info'], dataset['inherit_elements'])
         ]
     else:
         if 'deepseek' in args.model_id:
             sources = [
                 deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<correct> '
-                for (instruction, output, compile_info) in zip(dataset['masked_contract'], dataset['deepseek_output'], dataset['compile_info'])
+                for (instruction, output, compile_info) in zip(dataset['masked_class'], dataset['deepseek_output'], dataset['compile_info'])
             ]
         else:
             sources = [
                 deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<correct> '
-                for (instruction, output, compile_info) in zip(dataset['masked_contract'], dataset['deepseek_output'], dataset['compile_info'])
+                for (instruction, output, compile_info) in zip(dataset['masked_class'], dataset['deepseek_output'], dataset['compile_info'])
             ]
 
     batch_list = split_batch(sources, args.batch_size)
