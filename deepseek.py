@@ -109,7 +109,7 @@ def run(args):
             ]
         elif 'gemma' in args.model_id:
             sources = [
-                gemma_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<correct> '
+                gemma_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<inherit>\n' + inherit_elements + '\n<correct> '
                 for (instruction, output, compile_info, inherit_elements) in zip(dataset['masked_contract'], dataset['finetune_output'], dataset['compile_info'], dataset['inherit_elements'])
             ]
         elif 'star' in args.model_id:
