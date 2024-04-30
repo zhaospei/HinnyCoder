@@ -183,6 +183,13 @@ def gemma_train_tokenize_function(examples, tokenizer, task):
         ]
         targets = [f"{output}\n" + tokenizer.eos_token for output in examples['func_body']]
         data_dict = preprocess(sources, targets, tokenizer)
+    elif 'final' in task:
+        sources = [
+            gemma_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<inherit>\n' + inherit_elements + '\n<correct> '
+            for (instruction, output, compile_info, inherit_elements) in zip(examples['masked_class'], examples['finetune_output'], examples['compile_info'], examples['inherit_elements'])
+        ]
+        targets = [f"{output}" + tokenizer.eos_token  for output in examples['func_body']]
+        data_dict = preprocess(sources, targets, tokenizer)
     else:
         sources = [
             gemma_build_masked_func(instruction)
