@@ -1,1 +1,1 @@
-dump
+"The beginning is the end is the beginning."
