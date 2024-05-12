@@ -20,25 +20,25 @@ def deepseek_build_output_compiler(output: str):
     return output
 
 def deepseek_build_masked_func(masked_func: str):
-    masked_func = masked_func.replace('FILL_FUNCTION_BODY', FILL_TOKEN)
+    masked_func = masked_func.replace('FILL_FUNC_BODY', FILL_TOKEN)
     return BEGIN_TOKEN + masked_func + END_TOKEN
 
 def gemma_build_masked_func(masked_func):
-    # masked_func = masked_func.replace('FILL_FUNCTION_BODY', '<FILL_ME>')
+    # masked_func = masked_func.replace('FILL_FUNC_BODY', '<FILL_ME>')
     # return masked_func
-    prefix_tokens, suffix_tokens = masked_func.split('FILL_FUNCTION_BODY')
+    prefix_tokens, suffix_tokens = masked_func.split('FILL_FUNC_BODY')
     return '<|fim_prefix|>' + prefix_tokens + '<|fim_suffix|>' + suffix_tokens + '<|fim_middle|>'
 
 def starcoder_build_masked_func(masked_func):
-    # masked_func = masked_func.replace('FILL_FUNCTION_BODY', '<FILL_ME>')
+    # masked_func = masked_func.replace('FILL_FUNC_BODY', '<FILL_ME>')
     # return masked_func
-    prefix_tokens, suffix_tokens = masked_func.split('FILL_FUNCTION_BODY')
+    prefix_tokens, suffix_tokens = masked_func.split('FILL_FUNC_BODY')
     return '<fim_prefix>' + prefix_tokens + '<fim_suffix>' + suffix_tokens + '<fim_middle>'
 
 def codellama_build_masked_func(masked_func):
-    # masked_func = masked_func.replace('FILL_FUNCTION_BODY', '<FILL_ME>')
+    # masked_func = masked_func.replace('FILL_FUNC_BODY', '<FILL_ME>')
     # return masked_func
-    prefix_tokens, suffix_tokens = masked_func.split('FILL_FUNCTION_BODY')
+    prefix_tokens, suffix_tokens = masked_func.split('FILL_FUNC_BODY')
     return '▁<PRE>' + prefix_tokens + '▁<SUF>' + suffix_tokens + '▁<MID>'
 
 def split_batch(iterable, n=1):
