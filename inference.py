@@ -1,3 +1,4 @@
+import sys
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 import datasets
@@ -55,7 +56,6 @@ def run(args):
     model_id = args.model_id
 
     tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True, )
-    # print(tokenizer)
     if args.load_in_8bit:
         model = AutoModelForCausalLM.from_pretrained(model_id, trust_remote_code=True, torch_dtype=torch.bfloat16, device_map='auto', load_in_8bit=True)
     else:
@@ -70,14 +70,6 @@ def run(args):
     tokenizer.padding_side = "left" # Fix weird overflow issue with fp16 training
 
     dataset = datasets.load_dataset(dataset_id, split=args.data_split)
-    # dataset = datasets.load_dataset(dataset_id, split="train[:1]")
-
-    # train_dataset = raw_train_datasets.map(
-    #     train_tokenize_function,
-    #     batched=True,
-    #     batch_size=3000,
-    #     num_proc=32,
-    #     remove_columns=raw_train_datasets.column_names
     print(tokenizer)
     if args.task == 'gen_baseline':
         if 'deepseek' in args.model_id:
@@ -95,12 +87,38 @@ def run(args):
                 gemma_build_masked_func(masked_class_with_comment)
                 for masked_class_with_comment in dataset['masked_class_with_comment']
             ]
-        else:
+        elif 'star' in args.model_id:
             sources = [
                 starcoder_build_masked_func(masked_class_with_comment)
                 for masked_class_with_comment in dataset['masked_class_with_comment']
             ]
-            # print(sources)
+        else:
+            print('Model not supported')
+            sys.exit(1)
+    elif args.task == 'gen_finetune':
+        if 'deepseek' in args.model_id:
+            sources = [
+                deepseek_build_masked_func(masked_class_with_comment)
+                for masked_class_with_comment in dataset['masked_class_with_comment']
+            ]
+        elif 'llama' in args.model_id:
+            sources = [
+                codellama_build_masked_func(masked_class_with_comment)
+                for masked_class_with_comment in dataset['masked_class_with_comment']
+            ]
+        elif 'gemma' in args.model_id:
+            sources = [
+                gemma_build_masked_func(masked_class_with_comment)
+                for masked_class_with_comment in dataset['masked_class_with_comment']
+            ]
+        elif 'star' in args.model_id:
+            sources = [
+                starcoder_build_masked_func(masked_class_with_comment)
+                for masked_class_with_comment in dataset['masked_class_with_comment']
+            ]
+        else:
+            print('Model not supported')
+            sys.exit(1)
     elif args.task == 'gen_final':
         sources = [
             deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<inherit>\n' + inherit_elements + '\n<correct> '
@@ -112,16 +130,8 @@ def run(args):
             for (instruction, output, compile_info, inherit_elements) in zip(dataset['masked_class_with_comment'], dataset['deepseek_output'], dataset['compile_info'], dataset['inherit_elements'])
         ]
     else:
-        if 'deepseek' in args.model_id:
-            sources = [
-                deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<correct> '
-                for (instruction, output, compile_info) in zip(dataset['masked_class_with_comment'], dataset['deepseek_output'], dataset['compile_info'])
-            ]
-        else:
-            sources = [
-                deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<correct> '
-                for (instruction, output, compile_info) in zip(dataset['masked_class_with_comment'], dataset['deepseek_output'], dataset['compile_info'])
-            ]
+        print('Task not supported')
+        sys.exit(1)
 
     batch_list = split_batch(sources, args.batch_size)
     len_batch = len(sources) // args.batch_size
@@ -136,13 +146,17 @@ def run(args):
 
             if args.task == 'gen_baseline':
                 generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.pad_token_id, eos_token_id=tokenizer.eos_token_id)
+            elif args.task == 'gen_finetune':
+                if 'deepseek' in args.model_id:
+                    generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.pad_token_id, eos_token_id=32021)
+                else:
+                    generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.eos_token_id)
             else:
                 if 'deepseek' in args.model_id:
                     generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.pad_token_id, eos_token_id=32021)
                 else:
                     generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_new_tokens, pad_token_id=tokenizer.eos_token_id)
             
-            # print(tokenizer.decode(generated_ids[0], skip_special_tokens=True))
 
             truncated_ids = [ids[len(model_inputs[idx]):] for idx, ids in enumerate(generated_ids)]
 
@@ -162,17 +176,17 @@ def run(args):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", default='gen_baseline', type=str)
-    parser.add_argument("--batch_size", default=2, type=int,
+    parser.add_argument("--batch_size", default=1, type=int,
                         help="Batch size per GPU/CPU for training.")
     parser.add_argument("--load_in_8bit", action='store_true',
                         help="Load model 8 bit.")
     parser.add_argument("--model_peft", type=str, default='')
     parser.add_argument("--model_id", type=str, default='deepseek-ai/deepseek-coder-6.7b-base')
-    parser.add_argument("--dataset_id", type=str, default='zhaospei/smart-contract-gen')
+    parser.add_argument("--dataset_id", type=str, default='zhaospei/python-gold')
     parser.add_argument("--output_file", type=str, default="gen.output")
-    parser.add_argument("--max_length", type=int, default=4096)
+    parser.add_argument("--max_length", type=int, default=2100)
     parser.add_argument("--padding", type=str, default='longest')
-    parser.add_argument("--max_new_tokens", type=int, default=256)
+    parser.add_argument("--max_new_tokens", type=int, default=400)
     parser.add_argument("--data_split", type=str, default='test')
     args = parser.parse_args()
     run(args)
