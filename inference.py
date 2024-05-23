@@ -124,10 +124,10 @@ def run(args):
             deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<inherit>\n' + inherit_elements + '\n<correct> '
             for (instruction, output, compile_info, inherit_elements) in zip(dataset['masked_class_with_comment'], dataset['deepseek_output'], dataset['compile_info'], dataset['inherit_elements'])
         ]
-    elif args.task == 'gen_disable':
+    elif args.task == 'gen_refine':
         sources = [
-            deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<inherit>\n' + inherit_elements + '\n<correct> '
-            for (instruction, output, compile_info, inherit_elements) in zip(dataset['masked_class_with_comment'], dataset['deepseek_output'], dataset['compile_info'], dataset['inherit_elements'])
+            deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<correct> '
+            for (instruction, output, compile_info) in zip(dataset['masked_class_with_comment'], dataset['finetune_output'], dataset['pylint_output'])
         ]
     else:
         print('Task not supported')
