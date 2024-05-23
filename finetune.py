@@ -255,7 +255,6 @@ def train(args):
             deepseek_train_tokenize_function,
             batched=True,
             batch_size=3000,
-            num_proc=32,
             remove_columns=raw_train_datasets.column_names,
             load_from_cache_file=True, # not args.overwrite_cache
             desc="Running Encoding",
@@ -266,7 +265,6 @@ def train(args):
             codellama_train_tokenize_function,
             batched=True,
             batch_size=3000,
-            num_proc=32,
             remove_columns=raw_train_datasets.column_names,
             load_from_cache_file=True, # not args.overwrite_cache
             desc="Running Encoding",
@@ -277,7 +275,6 @@ def train(args):
             gemma_train_tokenize_function,
             batched=True,
             batch_size=3000,
-            num_proc=32,
             remove_columns=raw_train_datasets.column_names,
             load_from_cache_file=True, # not args.overwrite_cache
             desc="Running Encoding",
