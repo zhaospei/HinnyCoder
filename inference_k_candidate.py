@@ -246,10 +246,10 @@ def run(args):
                         pad_token_id=tokenizer.eos_token_id
                     )
 
-            truncated_ids = [ids[len(model_inputs[idx]):] for idx, ids in enumerate(generated_ids)]
+            # truncated_ids = [ids[len(model_inputs[idx]):] for idx, ids in enumerate(generated_ids)]
 
             output = tokenizer.batch_decode(
-                truncated_ids,
+                generated_ids,
                 skip_special_tokens=True
             )
 
