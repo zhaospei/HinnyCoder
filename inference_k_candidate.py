@@ -136,9 +136,9 @@ def run(args):
                 eos_token_id=32021
             )
             
-            print(model_inputs)
+            # print(model_inputs)
             # truncated_ids = [ids[len(model_inputs[idx]):] for idx, ids in enumerate(generated_ids)]
-            truncated_ids = [ids[len(model_inputs):] for ids in generated_ids]
+            truncated_ids = [ids[len(model_inputs['input_ids'].size()[1]):] for ids in generated_ids]
             generated_texts = [tokenizer.decode(output, skip_special_tokens=True) for output in truncated_ids]
             
             for text in generated_texts:
