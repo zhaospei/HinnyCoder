@@ -136,8 +136,9 @@ def run(args):
                 eos_token_id=32021
             )
             
+            print(model_inputs)
             # truncated_ids = [ids[len(model_inputs[idx]):] for idx, ids in enumerate(generated_ids)]
-            truncated_ids = [ids[len(model_inputs[0]):] for ids in generated_ids]
+            truncated_ids = [ids[len(model_inputs):] for ids in generated_ids]
             generated_texts = [tokenizer.decode(output, skip_special_tokens=True) for output in truncated_ids]
             
             for text in generated_texts:
@@ -217,9 +218,9 @@ def main():
     parser.add_argument("--model_id", type=str, default='deepseek-ai/deepseek-coder-6.7b-base')
     parser.add_argument("--dataset_id", type=str, default='zhaospei/python-gold')
     parser.add_argument("--output_file", type=str, default="gen.output")
-    parser.add_argument("--max_length", type=int, default=400)
+    parser.add_argument("--max_length", type=int, default=2100)
     parser.add_argument("--padding", type=str, default='longest')
-    parser.add_argument("--max_new_tokens", type=int, default=30)
+    parser.add_argument("--max_new_tokens", type=int, default=400)
     parser.add_argument("--data_split", type=str, default='test')
     args = parser.parse_args()
     run(args)
