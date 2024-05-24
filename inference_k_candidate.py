@@ -139,7 +139,7 @@ def run(args):
             # print(model_inputs)
             # truncated_ids = [ids[len(model_inputs[idx]):] for idx, ids in enumerate(generated_ids)]
             truncated_ids = [ids[model_inputs['input_ids'].size()[1]:] for ids in generated_ids]
-            generated_texts = [tokenizer.decode(output, skip_special_tokens=True) for output in truncated_ids]
+            generated_texts = [tokenizer.decode(output, skip_special_tokens=args.skip_special_tokens) for output in truncated_ids]
             
             for text in generated_texts:
                 try:
@@ -214,7 +214,7 @@ def main():
     parser.add_argument("--model_peft", type=str, default='')
     parser.add_argument("--top_k", type=str, default='50')
     parser.add_argument("--num_return_sequences", type=int, default='2')
-    # parser.add_argument("--do_sample", action='store_true')
+    parser.add_argument("--skip_special_tokens", action='store_true')
     parser.add_argument("--model_id", type=str, default='deepseek-ai/deepseek-coder-6.7b-base')
     parser.add_argument("--dataset_id", type=str, default='zhaospei/python-gold')
     parser.add_argument("--output_file", type=str, default="gen.output")
