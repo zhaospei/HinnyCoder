@@ -273,8 +273,8 @@ def main():
     parser.add_argument("--load_in_8bit", action='store_true',
                         help="Load model 8 bit.")
     parser.add_argument("--model_peft", type=str, default='')
-    parser.add_argument("--top_k", type=str, default='50')
-    parser.add_argument("--num_return_sequences", type=str, default='5')
+    parser.add_argument("--top_k", type=int, default='50')
+    parser.add_argument("--num_return_sequences", type=int, default='3')
     parser.add_argument("--do_sample", action='store_true')
     parser.add_argument("--model_id", type=str, default='deepseek-ai/deepseek-coder-6.7b-base')
     parser.add_argument("--dataset_id", type=str, default='zhaospei/python-gold')
