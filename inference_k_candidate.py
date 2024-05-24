@@ -219,6 +219,7 @@ def run(args):
                 if 'deepseek' in args.model_id:
                     generated_ids = model.generate(
                         **model_inputs,
+                        do_sample=args.do_sample,
                         num_return_sequences=args.num_return_sequences,
                         max_new_tokens=args.max_new_tokens,
                         pad_token_id=tokenizer.pad_token_id,
@@ -274,6 +275,7 @@ def main():
     parser.add_argument("--model_peft", type=str, default='')
     parser.add_argument("--top_k", type=str, default='50')
     parser.add_argument("--num_return_sequences", type=str, default='5')
+    parser.add_argument("--do_sample", action='store_true')
     parser.add_argument("--model_id", type=str, default='deepseek-ai/deepseek-coder-6.7b-base')
     parser.add_argument("--dataset_id", type=str, default='zhaospei/python-gold')
     parser.add_argument("--output_file", type=str, default="gen.output")
