@@ -16,7 +16,7 @@ BEGIN_TOKEN = "<｜fim▁begin｜>"
 FILL_TOKEN = "<｜fim▁hole｜>"
 END_TOKEN = "<｜fim▁end｜>"
 IGNORE_INDEX = -100
-EOT_TOKEN = "<|EOT|>"
+EOT_TOKEN = "<｜end▁of▁sentence｜>"
 
 def deepseek_build_output_compiler(output: str):
     output = output.replace('<COMPILED_SUCCESSFULLY>', 'success')
@@ -24,7 +24,7 @@ def deepseek_build_output_compiler(output: str):
     return output
 
 def deepseek_build_masked_func(masked_func: str):
-    masked_func = masked_func.replace('FILL_FUNC_BODY', FILL_TOKEN)
+    masked_func = masked_func.replace('FILL_FUNC_BODY', FILL_TOKEN + '\n')
     return BEGIN_TOKEN + masked_func + END_TOKEN
 
 def gemma_build_masked_func(masked_func):
@@ -151,7 +151,7 @@ def deepseek_train_tokenize_function(examples, tokenizer, task):
                 examples['pylint_output']
             )
         ]
-        targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
+        targets = [f"{output}{EOT_TOKEN}" for output in examples['func_body']]
         data_dict = preprocess(sources, targets, tokenizer)
     elif 'final' in task:
         sources = [
@@ -167,7 +167,7 @@ def deepseek_train_tokenize_function(examples, tokenizer, task):
                 examples['inherit_elements']
             )
         ]
-        targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
+        targets = [f"{output}{EOT_TOKEN}" for output in examples['func_body']]
         data_dict = preprocess(sources, targets, tokenizer)
     elif 'disable' in task:
         sources = [
@@ -182,14 +182,14 @@ def deepseek_train_tokenize_function(examples, tokenizer, task):
                 examples['inherit_elements']
             )
         ]
-        targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
+        targets = [f"{output}{EOT_TOKEN}" for output in examples['func_body']]
         data_dict = preprocess(sources, targets, tokenizer)
     else:
         sources = [
             deepseek_build_masked_func(instruction)
             for instruction in examples['masked_class_with_comment']
         ]
-        targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
+        targets = [f"{output}{EOT_TOKEN}" for output in examples['func_body']]
         data_dict = preprocess(sources, targets, tokenizer)
     return data_dict
 
