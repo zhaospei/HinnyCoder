@@ -119,14 +119,18 @@ class DataCollatorForSupervisedDataset(object):
     tokenizer: transformers.PreTrainedTokenizer
 
     def __call__(self, instances: Sequence[Dict]) -> Dict[str, torch.Tensor]:
-        input_ids, labels = tuple([instance[key] for instance in instances] for key in ("input_ids", "labels"))
+        input_ids, labels = tuple(
+            [instance[key] for instance in instances] for key in ("input_ids", "labels")
+        )
         input_ids = [torch.tensor(x) for x in input_ids]
         input_ids = torch.nn.utils.rnn.pad_sequence(
             input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
         )
         labels = [torch.tensor(x) for x in labels]
-        labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=IGNORE_INDEX)
-        
+        labels = torch.nn.utils.rnn.pad_sequence(
+            labels, batch_first=True, padding_value=IGNORE_INDEX
+        )
+
         return dict(
             input_ids=input_ids,
             labels=labels,
@@ -156,14 +160,27 @@ def deepseek_train_tokenize_function(examples, tokenizer, task):
             + '\n<compile>\n' + deepseek_build_output_compiler(compile_info)
             + '\n<inherit>\n' + inherit_elements
             +'\n<correct> '
-            for (instruction, output, compile_info, inherit_elements) in zip(examples['masked_class_with_comment'], examples['deepseek_output'], examples['compile_info'], examples['inherit_elements'])
+            for (instruction, output, compile_info, inherit_elements) in zip(
+                examples['masked_class_with_comment'],
+                examples['deepseek_output'],
+                examples['compile_info'],
+                examples['inherit_elements']
+            )
         ]
         targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
         data_dict = preprocess(sources, targets, tokenizer)
     elif 'disable' in task:
         sources = [
-            deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<inherit>\n' + inherit_elements + '\n<correct> '
-            for (instruction, output, compile_info, inherit_elements) in zip(examples['masked_class_with_comment'], examples['deepseek_output'], examples['compile_info'], examples['inherit_elements'])
+            deepseek_build_masked_func(instruction)
+            + '\n<ouput>\n' + output
+            + '\n<inherit>\n' + inherit_elements +
+            '\n<correct> '
+            for (instruction, output, compile_info, inherit_elements) in zip(
+                examples['masked_class_with_comment'],
+                examples['deepseek_output'],
+                examples['compile_info'],
+                examples['inherit_elements']
+            )
         ]
         targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
         data_dict = preprocess(sources, targets, tokenizer)
@@ -179,18 +196,25 @@ def deepseek_train_tokenize_function(examples, tokenizer, task):
 
 
 def codellama_train_tokenize_function(examples, tokenizer):
+    """Tokenize the training data for CodeLlama."""
     sources = [
-        codellama_build_masked_func(instruction) + '\n' + output + '\n<correct>'
-        for (instruction, output) in zip(examples['masked_class_with_comment'], examples['codellama_ouput'])
+        codellama_build_masked_func(instruction)
+        + '\n<ouput>\n' + output
+        + '\n<correct>'
+        for (instruction, output) in zip(
+            examples['masked_class_with_comment'],
+            examples['codellama_ouput']
+        )
     ]
     targets = [f"{output}\n▁<EOT>" for output in examples['func_body']]
     data_dict = preprocess(sources, targets, tokenizer)
     return data_dict
 
 def gemma_train_tokenize_function(examples, tokenizer):
+    """Tokenize the training data for Gemma."""
     sources = [
         gemma_build_masked_func(instruction)
-            for instruction in examples['masked_class_with_comment']
+        for instruction in examples['masked_class_with_comment']
     ]
     targets = [f"{output}\n" + tokenizer.eos_token for output in examples['func_body']]
     # print(targets)
@@ -198,6 +222,7 @@ def gemma_train_tokenize_function(examples, tokenizer):
     return data_dict
 
 def train(args):
+    """Train the model."""
     # parser = transformers.HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
     # model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
@@ -206,12 +231,17 @@ def train(args):
 
     # tokenizer = CodeLlamaTokenizer.from_pretrained(model_name_or_path)
 
-    # model = transformers.AutoModelForCausalLM.from_pretrained(model_name_or_path, load_in_8bit=True, device_map='auto', torch_dtype=torch.float16)
-    
+    # model = transformers.AutoModelForCausalLM.from_pretrained(
+        # model_name_or_path,
+        # load_in_8bit=True,
+        # device_map='auto',
+        # torch_dtype=torch.float16
+        # )
+
     # if training_args.local_rank == 0:
     #     print('='*100)
     #     print(training_args)
-    
+
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         args.model_name_or_path,
         model_max_length=args.model_max_length,
