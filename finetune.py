@@ -16,7 +16,7 @@ BEGIN_TOKEN = "<｜fim▁begin｜>"
 FILL_TOKEN = "<｜fim▁hole｜>"
 END_TOKEN = "<｜fim▁end｜>"
 IGNORE_INDEX = -100
-EOT_TOKEN = "<|EOT|>"
+EOT_TOKEN = "<｜end▁of▁sentence｜>"
 
 def deepseek_build_output_compiler(output: str):
     output = output.replace('<COMPILED_SUCCESSFULLY>', 'success')
