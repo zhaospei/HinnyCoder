@@ -133,7 +133,7 @@ def run(args):
                 do_sample=True,
                 num_return_sequences=args.num_return_sequences,
                 pad_token_id=tokenizer.pad_token_id,
-                eos_token_id=32021
+                eos_token_id=tokenizer.eos_token_id
             )
             
             # print(model_inputs)
