@@ -24,7 +24,7 @@ def deepseek_build_output_compiler(output: str):
     return output
 
 def deepseek_build_masked_func(masked_func: str):
-    masked_func = masked_func.replace('FILL_FUNC_BODY', FILL_TOKEN)
+    masked_func = masked_func.replace('FILL_FUNC_BODY', FILL_TOKEN + '\n')
     return BEGIN_TOKEN + masked_func + END_TOKEN
 
 def gemma_build_masked_func(masked_func):
