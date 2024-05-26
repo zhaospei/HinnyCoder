@@ -97,7 +97,7 @@ def run(args):
             model_id,
             trust_remote_code=True,
             torch_dtype=torch.bfloat16
-        ).to("cuda")
+        ).to("cuda:0")
 
     if args.model_peft != '':
         print('Loading peft model from ', args.model_peft)
@@ -126,7 +126,7 @@ def run(args):
                 max_length=args.max_length,
                 truncation=True
             )
-            model_inputs = {k: v.to("cuda") for k, v in model_inputs.items()}
+            model_inputs = {k: v.to("cuda:1") for k, v in model_inputs.items()}
             
             # with torch.no_grad():
             generated_ids = model.generate(
