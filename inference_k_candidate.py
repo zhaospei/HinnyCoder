@@ -96,8 +96,7 @@ def run(args):
         model = AutoModelForCausalLM.from_pretrained(
             model_id,
             trust_remote_code=True,
-            torch_dtype=torch.bfloat16,
-            device_map='auto'
+            torch_dtype=torch.bfloat16
         ).to("cuda")
 
     if args.model_peft != '':
