@@ -91,7 +91,7 @@ def run(args):
             torch_dtype=torch.bfloat16,
             device_map='auto',
             load_in_8bit=True
-        )
+        ).to("cuda")
     else:
         model = AutoModelForCausalLM.from_pretrained(
             model_id,
