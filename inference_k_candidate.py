@@ -98,7 +98,7 @@ def run(args):
             trust_remote_code=True,
             torch_dtype=torch.bfloat16,
             device_map='auto'
-        ).cuda()
+        ).to("cuda")
 
     if args.model_peft != '':
         print('Loading peft model from ', args.model_peft)
