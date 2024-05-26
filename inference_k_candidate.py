@@ -99,7 +99,7 @@ def run(args):
             torch_dtype=torch.bfloat16
         ).to("cuda")
 
-        model.parallelize()
+        # model.parallelize()
 
     if args.model_peft != '':
         print('Loading peft model from ', args.model_peft)
