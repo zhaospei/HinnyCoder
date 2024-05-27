@@ -266,6 +266,8 @@ def train(args):
         torch_dtype=torch.bfloat16,
         load_in_8bit=args.load_in_8bit,
     )
+    
+    model.gradient_checkpointing_enable()
 
     # if training_args.local_rank == 0:
     print("Load model from {} over.".format(args.model_name_or_path))
@@ -367,16 +369,18 @@ def train(args):
     # create peft config
     model, lora_config = create_peft_config(model)
 
-    model.enable_gradient_checkpointing(gradient_checkpointing_kwargs={"use_reentrant": False})
+    
+    
+    # model.enable_gradient_checkpointing(gradient_checkpointing_kwargs={"use_reentrant": False})
     output_dir = args.output_dir
 
     config = {
         'lora_config': lora_config,
         'learning_rate': 2e-5,
         'num_train_epochs': args.epochs,
-        'gradient_accumulation_steps': 2,
+        'gradient_accumulation_steps': args.gradient_accumulation_steps,
         'per_device_train_batch_size': args.batch_size,
-        'gradient_checkpointing': True,
+        'gradient_checkpointing': False,
     }
 
     model.train()
@@ -420,6 +424,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", type=str, default='finetune')
     parser.add_argument("--batch_size", default=1, type=int,
+                        help="Batch size per GPU/CPU for training.")
+    parser.add_argument("--gradient_accumulation_steps", default=2, type=int,
                         help="Batch size per GPU/CPU for training.")
     parser.add_argument("--load_in_8bit", action='store_true',
                         help="Load model 8 bit.")
