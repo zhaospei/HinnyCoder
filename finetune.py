@@ -367,6 +367,7 @@ def train(args):
     # create peft config
     model, lora_config = create_peft_config(model)
 
+    model.enable_gradient_checkpointing(gradient_checkpointing_kwargs={"use_reentrant": False})
     output_dir = args.output_dir
 
     config = {
