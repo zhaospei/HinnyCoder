@@ -143,7 +143,7 @@ def deepseek_train_tokenize_function(examples, tokenizer, task):
         sources = [
             deepseek_build_masked_func(instruction)
             + '\n<ouput>\n' + output
-            + '\n<compile>\n' + deepseek_build_output_compiler(compile_info)
+            + '\n<pylint>\n' + deepseek_build_output_compiler(compile_info)
             + '\n<correct> '
             for (instruction, output, compile_info) in zip(
                 examples['masked_class_with_comment'],
