@@ -375,7 +375,7 @@ def train(args):
         'num_train_epochs': args.epochs,
         'gradient_accumulation_steps': 2,
         'per_device_train_batch_size': args.batch_size,
-        'gradient_checkpointing': False,
+        'gradient_checkpointing': True,
     }
 
     model.train()
