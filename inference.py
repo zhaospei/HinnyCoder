@@ -175,7 +175,7 @@ def run(args):
         sources = [
             deepseek_build_masked_func(instruction)
             + '\n<ouput>\n' + output
-            + '\n<compile>\n' + deepseek_build_output_compiler(compile_info)
+            + '\n<pylint>\n' + deepseek_build_output_compiler(compile_info)
             + '\n<correct> '
             for (instruction, output, compile_info) in zip(
                 dataset['masked_class_with_comment'],
@@ -208,41 +208,13 @@ def run(args):
                     truncation=True
                 ).to("cuda")
                 # model_inputs = tokenizer(batch, return_tensors="pt", padding=True).to("cuda")
-            if args.task == 'gen_baseline':
-                generated_ids = model.generate(
-                    **model_inputs,
-                    max_new_tokens=args.max_new_tokens,
-                    pad_token_id=tokenizer.pad_token_id,
-                    eos_token_id=tokenizer.eos_token_id
-                )
-            elif args.task == 'gen_finetune':
-                if 'deepseek' in args.model_id:
-                    generated_ids = model.generate(
-                        **model_inputs,
-                        max_new_tokens=args.max_new_tokens,
-                        pad_token_id=tokenizer.pad_token_id,
-                        eos_token_id=32021
-                    )
-                else:
-                    generated_ids = model.generate(
-                        **model_inputs,
-                        max_new_tokens=args.max_new_tokens,
-                        pad_token_id=tokenizer.eos_token_id
-                    )
-            else:
-                if 'deepseek' in args.model_id:
-                    generated_ids = model.generate(
-                        **model_inputs,
-                        max_new_tokens=args.max_new_tokens,
-                        pad_token_id=tokenizer.pad_token_id,
-                        eos_token_id=32021
-                    )
-                else:
-                    generated_ids = model.generate(
-                        **model_inputs,
-                        max_new_tokens=args.max_new_tokens,
-                        pad_token_id=tokenizer.eos_token_id
-                    )
+            
+            generated_ids = model.generate(
+                **model_inputs,
+                max_new_tokens=args.max_new_tokens,
+                pad_token_id=tokenizer.pad_token_id,
+                eos_token_id=tokenizer.eos_token_id
+            )
 
             truncated_ids = [ids[len(model_inputs[idx]):] for idx, ids in enumerate(generated_ids)]
 
