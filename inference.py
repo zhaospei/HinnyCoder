@@ -135,11 +135,11 @@ def run(args):
             deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<inherit>\n' + inherit_elements + '\n<correct> '
             for (instruction, output, compile_info, inherit_elements) in zip(dataset['masked_class'], dataset['deepseek_output'], dataset['compile_info'], dataset['inherit_elements'])
         ]
-    else:
+    elif args.task == 'gen_refine':
         if 'deepseek' in args.model_id:
             sources = [
                 deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<correct> '
-                for (instruction, output, compile_info) in zip(dataset['masked_class'], dataset['deepseek_output'], dataset['compile_info'])
+                for (instruction, output, compile_info) in zip(dataset['masked_class'], dataset['generated_code'], dataset['compile_info'])
             ]
         else:
             sources = [
