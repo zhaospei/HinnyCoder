@@ -16,7 +16,7 @@ EOT_TOKEN = "<|EOT|>"
 
 def deepseek_build_output_compiler(output: str):
     output = output.replace('<COMPILED_SUCCESSFULLY>', 'success')
-    output = ' '.join(output.split()[:30])
+    # output = ' '.join(output.split()[:30])
     return output
 
 def deepseek_build_masked_func(masked_func: str):
