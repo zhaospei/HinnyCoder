@@ -137,7 +137,7 @@ def deepseek_train_tokenize_function(examples, tokenizer, task):
     if 'refine' in task:
         sources = [
             deepseek_build_masked_func(instruction) + '\n<ouput>\n' + output + '\n<compile>\n' + deepseek_build_output_compiler(compile_info) + '\n<correct> '
-            for (instruction, output, compile_info) in zip(examples['masked_class'], examples['deepseek_output'], examples['compile_info'])
+            for (instruction, output, compile_info) in zip(examples['masked_class'], examples['generated_code'], examples['compile_info'])
         ]
         targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
         data_dict = preprocess(sources, targets, tokenizer)
@@ -274,7 +274,6 @@ def train(args):
         train_dataset = raw_train_datasets.map(
             deepseek_train_tokenize_function,
             batched=True,
-            batch_size=3000,
             remove_columns=raw_train_datasets.column_names,
             load_from_cache_file=True, # not args.overwrite_cache
             desc="Running Encoding",
