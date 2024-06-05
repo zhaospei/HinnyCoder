@@ -175,11 +175,10 @@ def deepseek_train_tokenize_function(examples, tokenizer, task):
             + '\n<ouput>\n' + output
             + '\n<inherit>\n' + inherit_elements +
             '\n<correct> '
-            for (instruction, output, compile_info, inherit_elements) in zip(
+            for (instruction, output, inherit_elements) in zip(
                 examples['masked_class_with_comment'],
-                examples['deepseek_output'],
-                examples['compile_info'],
-                examples['inherit_elements']
+                examples['finetune_output'],
+                examples['relevant_context']
             )
         ]
         targets = [f"{output}{EOT_TOKEN}" for output in examples['func_body']]
