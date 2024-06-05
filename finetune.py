@@ -79,7 +79,7 @@ def _tokenize_fn(strings: Sequence[str], tokenizer: transformers.PreTrainedToken
             text,
             return_tensors="pt",
             padding="longest",
-            max_length=tokenizer.model_max_length,
+            max_length=3000,
             truncation=True,
         )
         for text in strings
