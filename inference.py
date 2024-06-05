@@ -183,7 +183,7 @@ def run(args):
                 dataset['pylint_output']
             )
         ]
-    elif args.task == 'gen_disable":
+    elif args.task == "gen_disable":
          sources = [
                 deepseek_build_masked_func(instruction)
                 + '\n<ouput>\n' + output
