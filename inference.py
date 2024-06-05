@@ -183,6 +183,18 @@ def run(args):
                 dataset['pylint_output']
             )
         ]
+    elif args.task == 'gen_disable":
+         sources = [
+                deepseek_build_masked_func(instruction)
+                + '\n<ouput>\n' + output
+                + '\n<inherit>\n' + inherit_elements +
+                '\n<correct> '
+                for (instruction, output, inherit_elements) in zip(
+                    dataset['masked_class_with_comment'],
+                    dataset['finetune_output'],
+                    dataset['relevant_context']
+                )
+            ]
     else:
         print('Task not supported')
         sys.exit(1)
