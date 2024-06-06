@@ -163,12 +163,12 @@ def run(args):
             + '\n<ouput>\n' + output
             + '\n<compile>\n' + deepseek_build_output_compiler(compile_info)
             + '\n<inherit>\n' + inherit_elements
-            + '\n<correct> '
+            +'\n<correct> '
             for (instruction, output, compile_info, inherit_elements) in zip(
                 dataset['masked_class_with_comment'],
-                dataset['deepseek_output'],
-                dataset['compile_info'],
-                dataset['inherit_elements']
+                dataset['finetune_output'],
+                dataset['pylint_output'],
+                dataset['relevant_context']
             )
         ]
     elif args.task == 'gen_refine':
