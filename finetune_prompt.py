@@ -228,7 +228,7 @@ def train(args):
     train_dataset = raw_train_datasets.map(
         deepseek_train_tokenize_function,
         batched=True,
-        batch_size=3000,
+        batch_size=300,
         remove_columns=raw_train_datasets.column_names,
         load_from_cache_file=True, # not args.overwrite_cache
         desc="Running Encoding",
