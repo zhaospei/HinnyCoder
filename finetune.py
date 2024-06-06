@@ -265,8 +265,9 @@ def train(args):
         torch_dtype=torch.bfloat16,
         load_in_8bit=args.load_in_8bit,
     )
-    
-    model.gradient_checkpointing_enable()
+
+    if args.gradient_checkpointing_enable:
+        model.gradient_checkpointing_enable()
 
     # if training_args.local_rank == 0:
     print("Load model from {} over.".format(args.model_name_or_path))
@@ -427,6 +428,8 @@ def main():
     parser.add_argument("--gradient_accumulation_steps", default=2, type=int,
                         help="Batch size per GPU/CPU for training.")
     parser.add_argument("--load_in_8bit", action='store_true',
+                        help="Load model 8 bit.")
+    parser.add_argument("--gradient_checkpointing_enable", action='store_true',
                         help="Load model 8 bit.")
     parser.add_argument("--model_name_or_path", type=str, default='deepseek-ai/deepseek-coder-6.7b-base')
     parser.add_argument("--data_path", type=str, default='zhaospei/refine-v2')
