@@ -162,9 +162,9 @@ def deepseek_train_tokenize_function(examples, tokenizer, task):
             +'\n<correct> '
             for (instruction, output, compile_info, inherit_elements) in zip(
                 examples['masked_class_with_comment'],
-                examples['deepseek_output'],
-                examples['compile_info'],
-                examples['inherit_elements']
+                examples['finetune_output'],
+                examples['pylint_output'],
+                examples['relevant_context']
             )
         ]
         targets = [f"{output}{EOT_TOKEN}" for output in examples['func_body']]
@@ -355,7 +355,7 @@ def train(args):
             r=8,
             lora_alpha=32,
             lora_dropout=0.05,
-            # target_modules = ["q_proj", "o_proj", "k_proj", "v_proj", "gate_proj", "up_proj", "down_proj"]
+            target_modules = ["q_proj", "v_proj"]
         )
 
         # prepare int-8 model for training
