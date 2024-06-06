@@ -144,6 +144,8 @@ def deepseek_train_tokenize_function(examples, tokenizer, task):
             examples['relevant_context']
         )
     ]
+
+    sources = [build_instruction_prompt(source) for source in sources]
     targets = [f"{output}\n{EOT_TOKEN}" for output in examples['func_body']]
     data_dict = preprocess(sources, targets, tokenizer)
     return data_dict
