@@ -197,6 +197,8 @@ def train(args):
         desc="Running Encoding",
         fn_kwargs={ "tokenizer": tokenizer , "task": args.task}
     )
+
+    print(train_dataset[0])
     
     data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer)
    
