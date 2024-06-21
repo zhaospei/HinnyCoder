@@ -141,7 +141,7 @@ def deepseek_train_tokenize_function(examples, tokenizer, task):
             + deepseek_build_relevant_context(inherit_elements)
             +'\nPlease provide a function implementation as expected by the task description.'
         for (instruction, inherit_elements) in zip(
-            examples['masked_class_with_comment'],
+            examples['masked_class'],
             examples['relevant_context']
         )
     ]
