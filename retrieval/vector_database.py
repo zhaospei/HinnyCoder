@@ -51,7 +51,7 @@ def create_types_schema():
     schema.add_field(field_name = 'modifiers', datatype = DataType.VARCHAR, max_length = 200)
     schema.add_field(field_name = 'implements', datatype = DataType.VARCHAR, max_length = 200)
     schema.add_field(field_name = 'extend', datatype = DataType.VARCHAR, max_length = 200)
-    schema.add_field(field_name = 'abstract', datatype = DataType.VARCHAR, max_length = 200)
+    schema.add_field(field_name = 'abstract', datatype = DataType.VARCHAR, max_length = 65535)
     schema.add_field(field_name = 'raw', datatype = DataType.VARCHAR, max_length = 65535)
 
     return schema
@@ -162,8 +162,6 @@ class insert_data_by_thread(Thread):
                 data = raw_data,
             )
 
-from tqdm import tqdm
-
 def insert_data(repo, dt, client):
     data_dir = f'{raw_prefix}/{repo}_{dt}.json'
 
@@ -194,6 +192,9 @@ def insert_data(repo, dt, client):
 raw_prefix = 'data/raw'
 db_prefix = 'data/database'
 
+# repo_list = ['docker-java_docker-java']
+# 'google_truth'
+
 for repo in repo_list:
     print(repo)
 
@@ -203,7 +204,7 @@ for repo in repo_list:
     index_params.add_index(
         field_name = 'vector',
         metric_type = 'L2',
-        index_type = 'FLAT',
+        index_type = 'HNSW',
         params = {},
     )
 
@@ -222,3 +223,5 @@ for repo in repo_list:
     for dt in data_type:
         inserter = insert_data_by_thread(repo, dt, client)
         inserter.start()
+
+    # break
