@@ -137,7 +137,7 @@ def deepseek_train_tokenize_function(examples, tokenizer, task):
     """Tokenize the training data for DeepSeek."""
     sources = [
         "Replace <FILL_FUNC_BODY> with code implementation of the function in a class/file code:" 
-            + '\n' + instruction 
+            + '\n' + instruction
             + deepseek_build_relevant_context(inherit_elements)
             +'\nPlease provide a function implementation as expected by the task description.'
         for (instruction, inherit_elements) in zip(
@@ -198,6 +198,8 @@ def train(args):
         fn_kwargs={ "tokenizer": tokenizer , "task": args.task}
     )
     
+    print(train_dataset[0])
+    
     data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer)
    
 
@@ -237,7 +239,6 @@ def train(args):
     }
 
     model.train()
-
 
     # Define training args
     training_args = transformers.TrainingArguments(
