@@ -138,6 +138,8 @@ def run(args):
         )
     ]
 
+    sources = [build_instruction_prompt(source) for source in sources]
+
     # batch_list = split_batch(sources, args.batch_size)
     # len_batch = len(sources) // args.batch_size
     with tqdm(total=len(sources), desc="gen") as pbar:
