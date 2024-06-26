@@ -81,7 +81,8 @@ searches = {
     ],
 }
 
-repo = encoded_repo_list[14]
+# repo = encoded_repo_list[14]
+repo = {'repo': 'orientechnologies_orientdb', 'hashed_repo': 'db_7518e57791785f696d5de75a4764fb372a3bb325970ea107f224d8883ec006d0'}
 
 bge_m3_ef = model.hybrid.BGEM3EmbeddingFunction(
     model_name = 'BAAI/bge-m3',
@@ -89,6 +90,8 @@ bge_m3_ef = model.hybrid.BGEM3EmbeddingFunction(
     use_fp16 = False,
 )
 
+import time
+start_time = time.time()
 client = MilvusClient(
     uri = uri,
     db_name = repo['hashed_repo'],
@@ -119,3 +122,5 @@ for (dt, value) in searches.items():
 json.dump(writer, f, indent = 4)
 
 f.close()
+
+print(time.time() - start_time)

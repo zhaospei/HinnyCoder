@@ -1,32 +1,3 @@
-import os
-
-# List to store the modified filenames
-modified_filenames = set()
-
-# Directory containing the files
-directory = 'data/raw'
-
-# Loop through each file in the specified directory
-for filename in os.listdir(directory):
-    if filename.endswith('.json'):
-        # Remove the specified substrings from the filename
-        new_filename = filename.replace('_methods', '').replace('_fields', '').replace('_types', '')
-        # Remove the '.json' extension
-        new_filename = new_filename[:-5]
-        # Add the modified filename to the list
-        modified_filenames.add(new_filename)
-
-# Display the modified filenames
-
-modified_filenames = list(modified_filenames)
-
-f = open('repos.txt', 'w')
-
-for i in modified_filenames:
-    f.write(i + '\n')
-
-f.close()
-
 repo_src = open('repos.txt', 'r')
 repo_list = [i.strip() for i in repo_src.readlines()]
 

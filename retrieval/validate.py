@@ -74,6 +74,9 @@ conn = connections.connect(
     port = '19530',
 )
 
+max_row = 0
+max_db = 0
+
 for repo in encoded_repo_list:
     print(repo['repo'])
 
@@ -113,6 +116,10 @@ for repo in encoded_repo_list:
                 flag = False
                 break
 
+            if (rows > max_row):
+                max_row = rows
+                max_db = repo
+
             print(f'{repo["repo"]}_{collection} row: {rows}')
 
         if (flag):
@@ -124,5 +131,8 @@ for repo in encoded_repo_list:
 
 print(valid)
 print(invalid)
+
+print(max_row)
+print(max_db)
 
 client.close()

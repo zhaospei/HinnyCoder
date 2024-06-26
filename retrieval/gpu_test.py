@@ -1,6 +1,7 @@
-from pymilvus import MilvusClient, DataType, model, connections, db, Collection, FieldSchema, CollectionSchema
+from pymilvus import MilvusClient, DataType, model, connections, db
 from threading import Thread
 from tqdm import tqdm
+import argparse
 import json
 
 conn = connections.connect(host = '127.0.0.1', port = 19530)
@@ -9,50 +10,55 @@ uri = 'http://localhost:19530'
 raw_prefix = 'data/raw'
 db_prefix = 'data/database'
 
-repo_src = open('repos.txt', 'r')
-repo_list = [i.strip() for i in repo_src.readlines()]
+def scan_repo_list():
+    import os
 
-def create_databases(repo_list):
-    repo_list = [i.strip().replace('-', '_') for i in repo_list]
+    # List to store the modified filenames
+    modified_filenames = set()
 
-    db_list = db.list_database()
+    # Directory containing the files
+    directory = 'data/raw'
 
+    # Loop through each file in the specified directory
+    for filename in os.listdir(directory):
+        if filename.endswith('.json'):
+            # Remove the specified substrings from the filename
+            new_filename = filename.replace('_methods', '').replace('_fields', '').replace('_types', '')
+            # Remove the '.json' extension
+            new_filename = new_filename[:-5]
+            # Add the modified filename to the list
+            modified_filenames.add(new_filename)
+
+    # Display the modified filenames
+
+    modified_filenames = list(modified_filenames)
+
+    f = open('repos.txt', 'w')
+
+    for i in modified_filenames:
+        f.write(i + '\n')
+
+    f.close()
+
+# create a repo_list and hash it for database name
+def create_repo_list():
+    scan_repo_list()
+
+    repo_src = open('repos.txt', 'r')
+    repo_list = [i.strip() for i in repo_src.readlines()]
+
+    # clean_databases()
+    import hashlib
+    encoded_repo_list = []
     for repo in repo_list:
-        if (repo in db_list):
-            continue
+        encoded_repo_list.append(
+            {
+                'repo': repo,
+                'hashed_repo': f'db_{hashlib.sha256(repo.encode("utf-8")).hexdigest()}',
+            }
+        )
 
-            client = MilvusClient(
-                uri = uri,
-                db_name = repo,
-            )
-
-            collections = client.list_collections()
-
-            for collection in collections:
-                client.drop_collection(collection_name = collection)
-
-            db.drop_database(repo)
-
-        db.create_database(repo)
-
-def create_blank_databases(repo_list):
-    db_list = db.list_database()
-
-    for repo in repo_list:
-        if (repo in db_list):
-            client = MilvusClient(
-                uri = uri,
-                db_name = repo,
-            )
-
-            collections = client.list_collections()
-
-            for collection in collections:
-                client.drop_collection(collection_name = collection)
-
-            db.drop_database(repo)
-
-        db.create_database(repo)
+    return encoded_repo_list
 
 def clean_databases():
     db_list = db.list_database()
@@ -73,19 +79,24 @@ def clean_databases():
 
         db.drop_database(db_name)
 
-# clean_databases()
-import hashlib
-encoded_repo_list = []
-for repo in repo_list:
-    encoded_repo_list.append(
-        {
-            'repo': repo,
-            'hashed_repo': f'db_{hashlib.sha256(repo.encode("utf-8")).hexdigest()}',
-        }
-    )
-print(len(encoded_repo_list))
-create_blank_databases([i['hashed_repo'] for i in encoded_repo_list])
+# create database, skip existing databases
+def create_databases(repo_list):
+    db_list = db.list_database()
 
+    for repo in repo_list:
+        if (repo in db_list):
+            continue
+
+        db.create_database(repo)
+
+# create database, remove existing databases
+def create_blank_databases(repo_list):
+    clean_databases()
+
+    for repo in repo_list:
+        db.create_database(repo)
+
+# create a schema for types
 def create_types_schema():
     schema = MilvusClient.create_schema(
         auto_id = False,
@@ -95,20 +106,19 @@ def create_types_schema():
     schema.add_field(field_name = 'id', datatype = DataType.INT64, is_primary = True)
     schema.add_field(field_name = 'vector', datatype = DataType.FLOAT_VECTOR, dim = 1024)
 
-    # schema.add_field(field_name = 'relative_path', datatype = DataType.VARCHAR, max_length = 5000)
-    # schema.add_field(field_name = 'name', datatype = DataType.VARCHAR, max_length = 200)
-    # schema.add_field(field_name = 'modifiers', datatype = DataType.VARCHAR, max_length = 200)
-    # schema.add_field(field_name = 'implements', datatype = DataType.VARCHAR, max_length = 200)
-    # schema.add_field(field_name = 'extend', datatype = DataType.VARCHAR, max_length = 200)
-    # # schema.add_field(field_name = 'abstract', datatype = DataType.VARCHAR, max_length = 65535)
-    # schema.add_field(field_name = 'raw', datatype = DataType.VARCHAR, max_length = 65535)
+    schema.add_field(field_name = 'relative_path', datatype = DataType.VARCHAR, max_length = 5000)
+    schema.add_field(field_name = 'name', datatype = DataType.VARCHAR, max_length = 200)
+    schema.add_field(field_name = 'modifiers', datatype = DataType.VARCHAR, max_length = 200)
+    schema.add_field(field_name = 'implements', datatype = DataType.VARCHAR, max_length = 200)
+    schema.add_field(field_name = 'extend', datatype = DataType.VARCHAR, max_length = 200)
+    schema.add_field(field_name = 'abstract', datatype = DataType.VARCHAR, max_length = 65535)
+    schema.add_field(field_name = 'raw', datatype = DataType.VARCHAR, max_length = 65535)
 
-    # schema.add_field(field_name = 'data', datatype = DataType.JSON)
-
-    schema.add_field(field_name = 'data_path', datatype = DataType.VARCHAR, max_length = 65535)
+    # schema.add_field(field_name = 'data_path', datatype = DataType.VARCHAR, max_length = 65535)
 
     return schema
 
+# create a schema for methods
 def create_methods_schema():
     schema = MilvusClient.create_schema(
         auto_id = False,
@@ -118,20 +128,19 @@ def create_methods_schema():
     schema.add_field(field_name = 'id', datatype = DataType.INT64, is_primary = True)
     schema.add_field(field_name = 'vector', datatype = DataType.FLOAT_VECTOR, dim = 1024)
 
-    # schema.add_field(field_name = 'relative_path', datatype = DataType.VARCHAR, max_length = 5000)
-    # schema.add_field(field_name = 'class', datatype = DataType.VARCHAR, max_length = 200)
-    # schema.add_field(field_name = 'name', datatype = DataType.VARCHAR, max_length = 200)
-    # schema.add_field(field_name = 'return_type', datatype = DataType.VARCHAR, max_length = 200)
-    # schema.add_field(field_name = 'modifiers', datatype = DataType.VARCHAR, max_length = 200)
-    # schema.add_field(field_name = 'parameters', datatype = DataType.JSON)
-    # schema.add_field(field_name = 'raw', datatype = DataType.VARCHAR, max_length = 65535)
+    schema.add_field(field_name = 'relative_path', datatype = DataType.VARCHAR, max_length = 5000)
+    schema.add_field(field_name = 'class', datatype = DataType.VARCHAR, max_length = 200)
+    schema.add_field(field_name = 'name', datatype = DataType.VARCHAR, max_length = 200)
+    schema.add_field(field_name = 'return_type', datatype = DataType.VARCHAR, max_length = 200)
+    schema.add_field(field_name = 'modifiers', datatype = DataType.VARCHAR, max_length = 200)
+    schema.add_field(field_name = 'parameters', datatype = DataType.JSON)
+    schema.add_field(field_name = 'raw', datatype = DataType.VARCHAR, max_length = 65535)
 
-    # schema.add_field(field_name = 'data', datatype = DataType.JSON)
-
-    schema.add_field(field_name = 'data_path', datatype = DataType.VARCHAR, max_length = 65535)
+    # schema.add_field(field_name = 'data_path', datatype = DataType.VARCHAR, max_length = 65535)
 
     return schema
 
+# create a schema for fields
 def create_fields_schema():
     schema = MilvusClient.create_schema(
         auto_id = False,
@@ -141,73 +150,50 @@ def create_fields_schema():
     schema.add_field(field_name = 'id', datatype = DataType.INT64, is_primary = True)
     schema.add_field(field_name = 'vector', datatype = DataType.FLOAT_VECTOR, dim = 1024)
 
-    # schema.add_field(field_name = 'relative_path', datatype = DataType.VARCHAR, max_length = 5000)
-    # schema.add_field(field_name = 'class', datatype = DataType.VARCHAR, max_length = 200)
-    # schema.add_field(field_name = 'type', datatype = DataType.VARCHAR, max_length = 200)
-    # schema.add_field(field_name = 'modifiers', datatype = DataType.VARCHAR, max_length = 200)
-    # schema.add_field(field_name = 'name', datatype = DataType.VARCHAR, max_length = 200)
-    # schema.add_field(field_name = 'raw', datatype = DataType.VARCHAR, max_length = 65535)
+    schema.add_field(field_name = 'relative_path', datatype = DataType.VARCHAR, max_length = 5000)
+    schema.add_field(field_name = 'class', datatype = DataType.VARCHAR, max_length = 200)
+    schema.add_field(field_name = 'type', datatype = DataType.VARCHAR, max_length = 200)
+    schema.add_field(field_name = 'modifiers', datatype = DataType.VARCHAR, max_length = 200)
+    schema.add_field(field_name = 'name', datatype = DataType.VARCHAR, max_length = 200)
+    schema.add_field(field_name = 'raw', datatype = DataType.VARCHAR, max_length = 65535)
 
-    # schema.add_field(field_name = 'data', datatype = DataType.JSON)
+    # schema.add_field(field_name = 'data_path', datatype = DataType.VARCHAR, max_length = 65535)
+
+    return schema
+
+# create a generic schema
+def create_generic_schema():
+    schema = MilvusClient.create_schema(
+        auto_id = False,
+        enable_dynamic_fields = True,
+    )
+
+    schema.add_field(field_name = 'id', datatype = DataType.INT64, is_primary = True)
+    schema.add_field(field_name = 'vector', datatype = DataType.FLOAT_VECTOR, dim = 1024)
 
     schema.add_field(field_name = 'data_path', datatype = DataType.VARCHAR, max_length = 65535)
 
     return schema
 
-schema = MilvusClient.create_schema(
-    auto_id = False,
-    enable_dynamic_fields = True,
-)
+def create_framework():
+    default_schema = create_generic_schema()
 
-schema.add_field(field_name = 'id', datatype = DataType.INT64, is_primary = True)
-schema.add_field(field_name = 'vector', datatype = DataType.FLOAT_VECTOR, dim = 1024)
+    schemas = {
+        'types': default_schema,
+        'methods': default_schema,
+        'fields': default_schema,
+    }
 
-# schema.add_field(field_name = 'relative_path', datatype = DataType.VARCHAR, max_length = 5000)
-# schema.add_field(field_name = 'class', datatype = DataType.VARCHAR, max_length = 200)
-# schema.add_field(field_name = 'type', datatype = DataType.VARCHAR, max_length = 200)
-# schema.add_field(field_name = 'modifiers', datatype = DataType.VARCHAR, max_length = 200)
-# schema.add_field(field_name = 'name', datatype = DataType.VARCHAR, max_length = 200)
-# schema.add_field(field_name = 'raw', datatype = DataType.VARCHAR, max_length = 65535)
+    return schemas
 
-# schema.add_field(field_name = 'data', datatype = DataType.JSON)
-
-schema.add_field(field_name = 'data_path', datatype = DataType.VARCHAR, max_length = 65535)
-
-schemas = {
-    # 'types': create_types_schema(),
-    # 'methods': create_methods_schema(),
-    # 'fields': create_fields_schema(),
-    'types': schema,
-    'methods': schema,
-    'fields': schema,
-}
-
-valid_keys = {
-    'types': {'relative_path', 'name', 'modifiers', 'extend', 'implements', 'raw', 'abstract'},
-    'methods': {'relative_path', 'class', 'name', 'return_type', 'modifiers', 'parameters', 'raw'},
-    'fields': {'relative_path', 'class', 'type', 'modifiers', 'name', 'raw'},
-}
-
-dummy_vals = {
-    'name': '',
-    'abstract': '',
-    'parameters': [],
-    'relative_path': '',
-    'modifiers': '',
-    'extend': '',
-    'type': '',
-    'raw': '',
-    'implements': '',
-    'class': '',
-    'return_type': '',
-}
-
+# insert data into database, multithreading
 class insert_data_by_thread(Thread):
-    def __init__(self, repo, dt, client):
+    def __init__(self, client, repo, dt, embedding_model):
         Thread.__init__(self)
         self.client = client
         self.repo = repo
         self.dt = dt
+        self.embedding_model = embedding_model
         self.data_dir = f'{raw_prefix}/{repo}_{dt}.json'
 
     def run(self):
@@ -222,13 +208,6 @@ class insert_data_by_thread(Thread):
         dense_vectors = vector_embeddings['dense']
 
         for i in tqdm(range(len(datas)), desc = f'{self.repo}_{self.dt}'):
-            # raw_data = datas[i]
-
-            # lacking = valid_keys[self.dt] - set(raw_data.keys())
-
-            # for lack in lacking:
-            #     raw_data[lack] = dummy_vals[lack]
-
             inserted_data = {}
             inserted_data['id'] = i
             inserted_data['vector'] = dense_vectors[i]
@@ -239,22 +218,13 @@ class insert_data_by_thread(Thread):
                 data = inserted_data,
             )
 
-def create_database(encoded_repo):
+def create_database(encoded_repo, schemas, embedding_model):
     print(encoded_repo['repo'])
 
     client = MilvusClient(
         uri = uri,
         db_name = encoded_repo['hashed_repo'],
     )
-
-    # index_params = {
-    #     # 'field_name': 'vector',
-    #     'metric_type': 'L2',
-    #     'index_type': 'GPU_IVF_FLAT',
-    #     'params': {
-    #         'nlist': 1024,
-    #     },
-    # }
 
     index_params = client.prepare_index_params()
     index_params.add_index(
@@ -279,13 +249,12 @@ def create_database(encoded_repo):
 
         client.create_index(
             collection_name = dt,
-            # field_name = 'vector',
             index_params = index_params,
         )
 
     pool = []
     for dt in data_type:
-        inserter = insert_data_by_thread(encoded_repo['repo'], dt, client)
+        inserter = insert_data_by_thread(client, encoded_repo['repo'], dt, embedding_model)
         pool.append(inserter)
 
     for inserter in pool:
@@ -294,7 +263,35 @@ def create_database(encoded_repo):
     for inserter in pool:
         inserter.join()
 
-embedding_model = model.hybrid.BGEM3EmbeddingFunction(model_name = 'BAAI/bge-m3', device = 'cuda:0', use_fp16 = False,)
+def main():
+    parser = argparse.ArgumentParser()
 
-for encoded_repo in encoded_repo_list:
-    create_database(encoded_repo)
+    parser.add_argument(
+        '--create_blank_databases',
+        action = 'store_true',
+        help = 'create blank databases'
+    )
+
+    args = parser.parse_args()
+
+    repo_list = create_repo_list()
+
+    print(f'number of repo: {len(repo_list)}')
+
+    if (args.create_blank_databases):
+        create_blank_databases(repo_list)
+    else:
+        create_databases([repo['hashed_repo'] for repo in repo_list])
+
+    embedding_model = model.hybrid.BGEM3EmbeddingFunction(model_name = 'BAAI/bge-m3', device = 'cuda:0', use_fp16 = False,)
+    schemas = create_framework()
+
+    db_list = db.list_database()
+    for repo in repo_list:
+        if ((not args.create_blank_databases) and (repo['hashed_repo'] in db_list)):
+            continue
+
+        create_database(repo, schemas, embedding_model)
+
+if (__name__ == '__main__'):
+    main()
