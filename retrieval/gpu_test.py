@@ -41,11 +41,13 @@ def scan_repo_list():
     f.close()
 
 # create a repo_list and hash it for database name
-def create_repo_list():
-    scan_repo_list()
+def create_repo_list(scan_db = False):
+    if (scan_db):
+        scan_repo_list()
 
     repo_src = open('repos.txt', 'r')
     repo_list = [i.strip() for i in repo_src.readlines()]
+    repo_src.close()
 
     # clean_databases()
     import hashlib
@@ -58,7 +60,11 @@ def create_repo_list():
             }
         )
 
-    return encoded_repo_list
+    repo_list_map = {}
+    for repo in encoded_repo_list:
+        repo_list_map[repo['repo']] = repo['hashed_repo']
+
+    return encoded_repo_list, repo_list_map
 
 def clean_databases():
     db_list = db.list_database()
@@ -171,7 +177,7 @@ def create_generic_schema():
     schema.add_field(field_name = 'id', datatype = DataType.INT64, is_primary = True)
     schema.add_field(field_name = 'vector', datatype = DataType.FLOAT_VECTOR, dim = 1024)
 
-    schema.add_field(field_name = 'data_path', datatype = DataType.VARCHAR, max_length = 65535)
+    schema.add_field(field_name = 'data_path', datatype = DataType.VARCHAR, max_length = 5000)
 
     return schema
 
@@ -198,6 +204,7 @@ class insert_data_by_thread(Thread):
 
     def run(self):
         data_dir = self.data_dir
+        embedding_model = self.embedding_model
 
         f = open(data_dir)
         datas = json.load(f)
@@ -272,22 +279,32 @@ def main():
         help = 'create blank databases'
     )
 
+    parser.add_argument(
+        '--scan_databases',
+        action = 'store_true',
+        help = 'scan for new databases'
+    )
+
     args = parser.parse_args()
 
-    repo_list = create_repo_list()
+    scan_db = False
+    if (args.scan_databases):
+        scan_db = True
 
-    print(f'number of repo: {len(repo_list)}')
+    encoded_repo_list, repo_list_map = create_repo_list(scan_db)
+
+    print(f'number of repo: {len(encoded_repo_list)}')
 
     if (args.create_blank_databases):
-        create_blank_databases(repo_list)
+        create_blank_databases([repo_list_map[i] for i in repo_list_map])
     else:
-        create_databases([repo['hashed_repo'] for repo in repo_list])
+        create_databases([repo['hashed_repo'] for repo in encoded_repo_list])
 
     embedding_model = model.hybrid.BGEM3EmbeddingFunction(model_name = 'BAAI/bge-m3', device = 'cuda:0', use_fp16 = False,)
     schemas = create_framework()
 
     db_list = db.list_database()
-    for repo in repo_list:
+    for repo in encoded_repo_list:
         if ((not args.create_blank_databases) and (repo['hashed_repo'] in db_list)):
             continue
 
