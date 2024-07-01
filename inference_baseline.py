@@ -39,9 +39,13 @@ def main(args):
     
     sources = [
         context
-        for context in zip(dataset['deepseek_relevant_context_prompt'])
+        for context in dataset['deepseek_relevant_context_prompt']
     ]
-
+    
+    print("\n====== Start testing max input ======\n")
+    inputs = tokenizer(sources[2524], max_length=8000, truncation=True, return_tensors="pt").to("cuda")
+    outputs = model.generate(**inputs, max_new_tokens=400)
+    print("\n====== Pass ======\n")
     batch_list = split_batch(sources, args.batch_size)
     len_batch = len(sources) // args.batch_size
     with tqdm(total=len_batch, desc="gen") as pbar:
@@ -55,7 +59,7 @@ def main(args):
 
             for idx, source in enumerate(batch):
                 try:
-                    out = output[idx].replace('\n', ' ')
+                    out = output[idx]
                     write_string_to_file(args.output_file, out + '<nl>')
                 except Exception as e:
                     print(e)
