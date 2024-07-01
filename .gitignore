@@ -1,5 +1,7 @@
 __pycache__/
 *.jsonl
+.venv/
+venv/
 tmp/*
 *.output
 /*.json
@@ -14,3 +16,6 @@ adapter/
 .env
 data/
 *.out
+*.db
+*.json
+retrieval/docker/volumes/
