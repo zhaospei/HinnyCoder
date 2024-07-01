@@ -12,3 +12,5 @@ codellama-fintune-v1/
 adapter/
 *.ipynb
 .env
+data/
+*.out
