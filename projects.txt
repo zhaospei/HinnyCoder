@@ -113,6 +113,6 @@ spring-io/initializr
 networknt/light-4j
 orientechnologies/orientdb
 pmd/pmd
-spring-cloud/spring-cloud-gateway
+spring-cloud_spring-cloud-gateway
 spring-cloud/spring-cloud-netflix
 spring-projects/spring-retry
