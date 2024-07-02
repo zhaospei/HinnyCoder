@@ -1,5 +1,7 @@
 __pycache__/
 *.jsonl
+.venv/
+venv/
 tmp/*
 *.output
 /*.json
@@ -12,3 +14,8 @@ codellama-fintune-v1/
 adapter/
 *.ipynb
 .env
+data/
+*.out
+*.db
+*.json
+retrieval/docker/volumes/
