@@ -39,13 +39,29 @@ def main(args):
 
     dataset = load_dataset(args.dataset_path, split='test')
     
-    sources = [
-        '<｜fim▁begin｜>' + masked_class.replace('<FILL_FUNCTION_BODY>', '<｜fim▁hole｜>') + build_relevant_context(context) + '<｜fim▁end｜>'
-        for (masked_class, context) in zip(
-            dataset['masked_class'],
-            dataset['initial_context']
-        )
-    ]
+    if args.task == 'baseline':
+        sources = [
+            '<｜fim▁begin｜>' + masked_class.replace('<FILL_FUNCTION_BODY>', '<｜fim▁hole｜>') + '<｜fim▁end｜>'
+            for masked_class in dataset['masked_class']
+        ]
+    elif args.task == 'parent_context':
+        sources = [
+            '<｜fim▁begin｜>' + masked_class.replace('<FILL_FUNCTION_BODY>', '<｜fim▁hole｜>') + build_relevant_context(context) + '<｜fim▁end｜>'
+            for (masked_class, context) in zip(
+                dataset['masked_class'],
+                dataset['parent_context']
+            )
+        ]
+    elif args.task == 'initial_context':
+        sources = [
+            '<｜fim▁begin｜>' + masked_class.replace('<FILL_FUNCTION_BODY>', '<｜fim▁hole｜>') + build_relevant_context(context) + '<｜fim▁end｜>'
+            for (masked_class, context ) in zip(
+                dataset['masked_class'],
+                dataset['initial_context']
+            )
+        ]
+    else:
+        raise ValueError(f'Invalid task: {args.task}')
     
     print("\n====== Start testing max input ======\n")
     # inputs = tokenizer(sources[2524], max_length=4098, truncation=True, return_tensors="pt").to("cuda")
@@ -75,11 +91,13 @@ def main(args):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset_path", default='zhaospei/deepseek_relevant_context_prompt', type=str,
+    parser.add_argument("--task", default='baseline', type=str,
+                        help="Task to perform: e.g. baseline, peft")
+    parser.add_argument("--dataset_path", default='zhaospei/500_parent_param_context', type=str,
                         help="Path to dataset for inferencing")
-    parser.add_argument("--model_path", default="deepseek-ai/deepseek-coder-1.3b-base", type=str,
+    parser.add_argument("--model_path", default="deepseek-ai/deepseek-coder-6.7b-base", type=str,
                         help="Path to pre-trained model: e.g. roberta-base, codellama/CodeLlama-7b-hf, Salesforce/codet5-base")
-    parser.add_argument("--batch_size", default=2, type=int,
+    parser.add_argument("--batch_size", default=1, type=int,
                         help="Batch size per GPU/CPU for training.")
     parser.add_argument("--load_in_8bit", action='store_true',
                         help="Load model 8 bit.")
