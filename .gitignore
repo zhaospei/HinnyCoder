@@ -19,3 +19,4 @@ data/
 *.db
 *.json
 retrieval/docker/volumes/
+raw_gen/
