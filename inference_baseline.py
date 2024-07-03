@@ -15,7 +15,7 @@ def write_string_to_file(absolute_filename, string):
         fout.write(string)
 
 def build_relevant_context(str):
-    if str:
+    if str.strip() != '':
         return "\n// Here are some relevant code fragments from other files of the repo:\n" + str
     else:
         return str        
@@ -58,6 +58,14 @@ def main(args):
             for (masked_class, context ) in zip(
                 dataset['masked_class'],
                 dataset['initial_context']
+            )
+        ]
+    elif args.task == 'relevant_context':
+        sources = [
+            '<｜fim▁begin｜>' + masked_class.replace('<FILL_FUNCTION_BODY>', '<｜fim▁hole｜>') + build_relevant_context(context) + '<｜fim▁end｜>'
+            for (masked_class, context ) in zip(
+                dataset['masked_class'],
+                dataset['relevant_context']
             )
         ]
     else:
