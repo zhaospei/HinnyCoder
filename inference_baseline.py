@@ -5,10 +5,6 @@ from peft import PeftModel
 from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-def build_description_prompt(diff):
-    prompt_des = f"Give a short commit message for code from git diff:\n{{diff}}\nShort commit message:\n"
-    return prompt_des.format(diff=diff)
-
 def split_batch(iterable, n=1):
     l = len(iterable)
     for ndx in range(0, l, n):
@@ -17,6 +13,12 @@ def split_batch(iterable, n=1):
 def write_string_to_file(absolute_filename, string):
     with open(absolute_filename, 'a') as fout:
         fout.write(string)
+
+def build_relevant_context(str):
+    if str:
+        return "\n// Here are some relevant code fragments from other files of the repo:\n" + str
+    else:
+        return str        
 
 def main(args):
 
@@ -38,13 +40,16 @@ def main(args):
     dataset = load_dataset(args.dataset_path, split='test')
     
     sources = [
-        context
-        for context in dataset['deepseek_relevant_context_prompt']
+        '<｜fim▁begin｜>' + masked_class.replace('<FILL_FUNCTION_BODY>', '<｜fim▁hole｜>') + build_relevant_context(context) + '<｜fim▁end｜>'
+        for (masked_class, context) in zip(
+            dataset['masked_class'],
+            dataset['initial_context']
+        )
     ]
     
     print("\n====== Start testing max input ======\n")
-    inputs = tokenizer(sources[2524], max_length=8000, truncation=True, return_tensors="pt").to("cuda")
-    outputs = model.generate(**inputs, max_new_tokens=400)
+    # inputs = tokenizer(sources[2524], max_length=4098, truncation=True, return_tensors="pt").to("cuda")
+    # outputs = model.generate(**inputs, max_new_tokens=400)
     print("\n====== Pass ======\n")
     batch_list = split_batch(sources, args.batch_size)
     len_batch = len(sources) // args.batch_size
