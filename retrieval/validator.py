@@ -24,7 +24,7 @@ def retrieve(dt, searches, vectors):
         print(i['name'])
 
 search_params = {
-    'metric_type': 'L2',
+    'metric_type': 'COSINE',
     'params': {
         'nprobe': 1024,
     },
@@ -243,7 +243,7 @@ def validate(repo, max_row, max_db):
 
             rows = res[0]['count(*)']
 
-            print(f'repo: {repo}, {rows}')
+            # print(f'repo: {repo["repo"]}, row: {rows}')
 
             f = open(f'{raw_prefix}/{repo["repo"]}_{collection_name}.json')
             datas = json.load(f)
@@ -286,7 +286,7 @@ for repo in encoded_repo_list:
 
     cnt += 1
 
-    if (cnt == 2):
+    if (cnt == 1):
         break
 
 print(valid)

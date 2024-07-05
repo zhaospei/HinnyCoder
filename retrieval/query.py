@@ -201,7 +201,11 @@ class create_work_queue_by_thread(Thread):
             if (len(c) == 0):
                 continue
 
-            embedded_retrieval_elements[element] = embedding_model.encode_documents(list(retrieval_elements[element]))['dense']
+            embedded_retrieval_elements[element] = {}
+
+            for i in range(len(retrieval_elements[element])):
+                embedded_retrieval_elements[element]
+                embedding_model.encode_documents(list(retrieval_elements[element]))['dense']
 
         work_queue[db_name].append(
             {

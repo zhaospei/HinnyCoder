@@ -240,6 +240,8 @@ def insert_data(client, repo, dt, embedding_model):
     vector_embeddings = embedding_model.encode_documents(names)
     dense_vectors = vector_embeddings['dense']
 
+    inserted_datas = []
+
     for i in tqdm(range(len(datas)), desc = f'{repo}_{dt}'):
         inserted_data = {}
         inserted_data['id'] = i
@@ -247,10 +249,12 @@ def insert_data(client, repo, dt, embedding_model):
         inserted_data['vector'] = dense_vectors[i]
         inserted_data['data_path'] = data_dir
 
-        client.insert(
-            collection_name = dt,
-            data = inserted_data,
-        )
+        inserted_datas.append(inserted_data)
+
+    client.upsert(
+        collection_name = dt,
+        data = inserted_datas,
+    )
 
 def create_database(encoded_repo, schemas, embedding_model):
     print(encoded_repo['repo'])
@@ -307,6 +311,8 @@ def create_database(encoded_repo, schemas, embedding_model):
             print(f'error occured at {encoded_repo["repo"]}')
             f.write(encoded_repo['repo'] + '\n')
 
+    print('-' * 50)
+
 def main():
     parser = argparse.ArgumentParser()
 
@@ -362,8 +368,8 @@ def main():
 
         cnt += 1
 
-        if (cnt == 2):
-            break
+        # if (cnt == 1):
+        #     break
 
 if (__name__ == '__main__'):
     main()
