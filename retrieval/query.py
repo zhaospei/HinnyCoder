@@ -6,6 +6,7 @@ import argparse
 import json
 import time
 
+
 def scan_repo_list():
     import os
 
@@ -19,7 +20,7 @@ def scan_repo_list():
     for filename in os.listdir(directory):
         if filename.endswith('.json'):
             # Remove the specified substrings from the filename
-            new_filename = filename.replace('_methods', '').replace('_fields', '').replace('_types', '')
+            new_filename = filename.replace('_methods', '').replace('_fields', '').replace('_types', '').replace('_method', '').replace('_field', '').replace('_type', '')
             # Remove the '.json' extension
             new_filename = new_filename[:-5]
             # Add the modified filename to the list
@@ -66,7 +67,7 @@ data_prefix = 'data'
 raw_prefix = f'{data_prefix}/raw'
 db_prefix = f'{data_prefix}/database'
 
-data_type = ['types', 'methods', 'fields']
+data_type = ['types']
 search_params = {
     'metric_type': 'L2',
     'params': {
@@ -80,24 +81,26 @@ embedding_model = model.hybrid.BGEM3EmbeddingFunction(
     use_fp16 = False,
 )
 
-search_params = {
-    'metric_type': 'L2',
-    'params': {
-        'nprobe': 1024,
-    },
-}
-
 def retrieve(client, db_name, embedded_retrieval_elements):
         client = MilvusClient(
             uri = uri,
             db_name = db_name,
         )
 
+        MAX_TOKEN = 3000
+        current_tokens = 0
+
         relevant_context = ''
         for dt in data_type:
-            client.load_collection(
-                collection_name = dt,
-            )
+            while (True):
+                try:
+                    client.load_collection(
+                        collection_name = dt,
+                    )
+
+                    break
+                except Exception as e:
+                    pass
 
             if (dt not in embedded_retrieval_elements):
                 continue
@@ -109,7 +112,7 @@ def retrieve(client, db_name, embedded_retrieval_elements):
             retrieved_candidates = client.search(
                 collection_name = dt,
                 data = things_we_need_to_find,
-                limit = 5,
+                limit = 3,
                 search_params = search_params,
             )
 
@@ -132,10 +135,23 @@ def retrieve(client, db_name, embedded_retrieval_elements):
             f.close()
 
             for i in all_res:
+                tokens = None
+                if (dt == 'types'):
+                    tokens = datas[i['id']]['abstract'].split()
+                else:
+                    tokens = datas[i['id']]['raw'].split()
+
+                if (current_tokens + len(tokens) > MAX_TOKEN):
+                    continue
+
+                current_tokens += len(tokens)
+
                 if (dt == 'types'):
                     relevant_context += datas[i['id']]['abstract']
                 else:
                     relevant_context += datas[i['id']]['raw']
+
+        client.close()
 
         return relevant_context
 
@@ -175,6 +191,16 @@ class create_work_queue_by_thread(Thread):
             if (len(retrieval_elements[element]) == 0):
                 continue
 
+            c = []
+            for i in retrieval_elements[element]:
+                if (len(i) == 0):
+                    continue
+
+                c.append(i)
+
+            if (len(c) == 0):
+                continue
+
             embedded_retrieval_elements[element] = embedding_model.encode_documents(list(retrieval_elements[element]))['dense']
 
         work_queue[db_name].append(
@@ -193,6 +219,34 @@ def main():
         help = 'scan for new databases'
     )
 
+    parser.add_argument(
+        '--l',
+        type = int,
+        help = 'lower bound of the dataset (inclusive) ( [l, r) )',
+        default = 0,
+    )
+
+    parser.add_argument(
+        '--r',
+        type = int,
+        help = 'upper bound of the dataset (exclusive) ( [l, r) )',
+        default = 10000000000000000,
+    )
+
+    parser.add_argument(
+        '--src_name',
+        type = str,
+        help = 'data source file name',
+        default = 'source.parquet',
+    )
+
+    parser.add_argument(
+        '--name',
+        type = str,
+        help = 'saved file name',
+        default = 'i_did_it.parquet',
+    )
+
     args = parser.parse_args()
 
     scan_db = False
@@ -202,9 +256,9 @@ def main():
     encoded_repo_list, repo_list_map = create_repo_list(scan_db)
     print(len(encoded_repo_list))
 
-    data_name = 'i_did_it.parquet'
+    data_name = args.src_name
     df = pd.read_parquet(f'{data_prefix}/{data_name}')
-    res_name = 'i_did_it1.parquet'
+    res_name = args.name
 
     thread_cnt = len(encoded_repo_list)
     clients = []
@@ -219,8 +273,17 @@ def main():
     for (key, value) in repo_list_map.items():
         work_queue[value] = []
 
+    l = args.l
+    l = max(0, l)
+    l = min(l, len(df) - 1)
+    r = args.r
+    r = max(0, r)
+    r = min(r, len(df))
+
     threads = []
-    ids = [i for i in range(len(df))]
+    ids = [i for i in range(l, r)]
+    # ids = [1, 27, 37, 51, 67, 74, 104, 115, 120, 122, 129, 139, 152, 159, 162, 186, 189, 190, 192, 194, 208, 209, 210, 211, 215, 217, 224, 230, 235, 236, 237, 239, 240, 241, 246, 251, 256, 268, 296, 331, 337, 342, 364, 365, 369, 377, 382, 386, 405, 416, 424, 432, 433, 438, 447, 448, 451, 453, 454, 457, 460, 464, 465, 466, 467, 468, 471, 479, 483, 486, 487, 488, 491, 494, 495, 496, 497]
+    print(l, r)
     for i in tqdm(ids, 'build work queue'):
         row = df.iloc[i]
 
@@ -285,6 +348,36 @@ def main():
         end_flag = False
         for key in work_queue:
             end_flag = end_flag or (len(work_queue[key]) > 0)
+
+    # for key in work_queue:
+    #     queue = work_queue[key]
+
+    #     working_on = []
+
+    #     dt_work_queue = {
+    #         'types': [],
+    #         'methods': [],
+    #         'fields': [],
+    #     }
+    #     for testcase in queue:
+    #         dt_work_queue[testcase['']]
+
+    #     rows -= len(working_on)
+    #     print(f'working on: {working_on}')
+    #     print(f'remaining: {rows}')
+    #     print()
+
+    #     for thread in threads:
+    #         thread.start()
+
+    #     for thread in threads:
+    #         thread.join()
+
+    #     df.to_parquet(f'{data_prefix}/{res_name}')
+
+    #     end_flag = False
+    #     for key in work_queue:
+    #         end_flag = end_flag or (len(work_queue[key]) > 0)
 
 if (__name__ == '__main__'):
     main()

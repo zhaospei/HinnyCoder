@@ -38,6 +38,7 @@ services:
 
   standalone:
     container_name: milvus-standalone
+    restart: always
     image: milvusdb/milvus:v2.4.5-gpu
     command: ["milvus", "run", "standalone"]
     security_opt:
