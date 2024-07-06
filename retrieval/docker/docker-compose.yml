@@ -37,8 +37,8 @@ services:
       retries: 3
 
   standalone:
-    container_name: milvus-standalone
     restart: always
+    container_name: milvus-standalone
     image: milvusdb/milvus:v2.4.5-gpu
     command: ["milvus", "run", "standalone"]
     security_opt:

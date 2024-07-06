@@ -138,8 +138,7 @@ class validate_by_thread(Thread):
             db_name = repo['hashed_repo'],
         )
 
-        db.using_database(repo['hashed_repo'])
-
+        print(repo['repo'])
 
         collections = client.list_collections()
 
@@ -203,8 +202,7 @@ def validate(repo, max_row, max_db):
         db_name = repo['hashed_repo'],
     )
 
-    db.using_database(repo['hashed_repo'])
-
+    print(repo['repo'])
 
     collections = client.list_collections()
 
@@ -285,9 +283,6 @@ for repo in encoded_repo_list:
     validate(repo, max_row, max_db)
 
     cnt += 1
-
-    if (cnt == 1):
-        break
 
 print(valid)
 print(invalid)
