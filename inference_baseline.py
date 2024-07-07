@@ -76,6 +76,14 @@ def main(args):
                 dataset['relevant_context_no_cmt']
             )
         ]
+    elif args.task == 'all_combined_relevant_context':
+        sources = [
+            '<｜fim▁begin｜>' + masked_class.replace('<FILL_FUNCTION_BODY>', '<｜fim▁hole｜>') + build_relevant_context(context) + '<｜fim▁end｜>'
+            for (masked_class, context ) in zip(
+                dataset['masked_class'],
+                dataset['all_combined_relevant_context'],
+            )
+        ]
     else:
         raise ValueError(f'Invalid task: {args.task}')
     
