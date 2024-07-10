@@ -4,7 +4,26 @@ from tqdm import tqdm
 import pandas as pd
 import argparse
 import json
-import time
+import os
+
+uri = 'http://localhost:19530'
+data_prefix = 'data'
+raw_prefix = f'{data_prefix}/raw'
+db_prefix = f'{data_prefix}/database'
+
+data_type = ['types']
+search_params = {
+    'metric_type': 'L2',
+    'params': {
+        'nprobe': 1024,
+    },
+}
+
+embedding_model = model.hybrid.BGEM3EmbeddingFunction(
+    model_name = 'BAAI/bge-m3',
+    device = 'cuda:0',
+    use_fp16 = False,
+)
 
 def scan_repo_list():
     import os
@@ -13,13 +32,13 @@ def scan_repo_list():
     modified_filenames = set()
 
     # Directory containing the files
-    directory = 'data/raw'
+    directory = raw_prefix
 
     # Loop through each file in the specified directory
     for filename in os.listdir(directory):
         if filename.endswith('.json'):
             # Remove the specified substrings from the filename
-            new_filename = filename.replace('_methods', '').replace('_fields', '').replace('_types', '')
+            new_filename = filename.replace('_methods', '').replace('_fields', '').replace('_types', '').replace('_method', '').replace('_field', '').replace('_type', '')
             # Remove the '.json' extension
             new_filename = new_filename[:-5]
             # Add the modified filename to the list
@@ -61,83 +80,117 @@ def create_repo_list(scan_db = False):
 
     return encoded_repo_list, repo_list_map
 
-uri = 'http://localhost:19530'
-data_prefix = 'data'
-raw_prefix = f'{data_prefix}/raw'
-db_prefix = f'{data_prefix}/database'
+def retrieve(client, db_name, proj_name, relative_path, embedded_retrieval_elements):
+    client = MilvusClient(
+        uri = uri,
+        db_name = db_name,
+    )
 
-data_type = ['types', 'methods', 'fields']
-search_params = {
-    'metric_type': 'L2',
-    'params': {
-        'nprobe': 1024,
-    },
-}
+    relevant_context = ''
+    relevant_context_no_cmt = ''
+    current_relative_path = os.path.join(proj_name, relative_path)
+    all_names = []
+    retrieved_name_set = set()
+    for dt in data_type:
+        if (dt not in embedded_retrieval_elements):
+            continue
 
-embedding_model = model.hybrid.BGEM3EmbeddingFunction(
-    model_name = 'BAAI/bge-m3',
-    device = 'cuda:0',
-    use_fp16 = False,
-)
-
-search_params = {
-    'metric_type': 'L2',
-    'params': {
-        'nprobe': 1024,
-    },
-}
-
-def retrieve(client, db_name, embedded_retrieval_elements):
-        client = MilvusClient(
-            uri = uri,
-            db_name = db_name,
-        )
-
-        relevant_context = ''
-        for dt in data_type:
-            client.load_collection(
-                collection_name = dt,
-            )
-
-            if (dt not in embedded_retrieval_elements):
-                continue
-
-            all_res = []
-            things_we_need_to_find = embedded_retrieval_elements[dt]
-            # optimize here!!!
-
-            retrieved_candidates = client.search(
-                collection_name = dt,
-                data = things_we_need_to_find,
-                limit = 5,
-                search_params = search_params,
-            )
-
-            for candidate in retrieved_candidates:
-                ids = [int(candidate[0]['id'])]
-
-                res = client.get(
+        while(True):
+            try:
+                client.load_collection(
                     collection_name = dt,
-                    ids = ids,
                 )
 
-                all_res.append(res[0])
+                break
+            except Exception as e:
+                pass
 
-            client.release_collection(
-                collection_name = dt,
+        all_res = []
+        names = list(embedded_retrieval_elements[dt].keys())
+        things_we_need_to_find = [embedded_retrieval_elements[dt][key] for key in names]
+        # optimize here!!!
+
+        retrieved_candidates = client.search(
+            collection_name = dt,
+            data = things_we_need_to_find,
+            limit = 3,
+            search_params = search_params,
+        )
+
+        if (len(retrieved_candidates) != len(things_we_need_to_find)):
+            print('t lay. m? sao loi~ dc hay v')
+            print('-' * 100)
+
+            return
+
+        for i in range(len(retrieved_candidates)):
+            candidates = retrieved_candidates[i]
+            ids = [int(candidates[j]['id']) for j in range(len(candidates))]
+
+            wres = []
+            for ai_di in ids:
+                res = client.get(
+                    collection_name = dt,
+                    ids = [ai_di],
+                )
+
+                wres.append(res[0])
+
+            all_res.append(
+                {
+                    names[i]: wres,
+                }
             )
 
-            f = open(all_res[0]['data_path'], 'r')
-            datas = json.load(f)
-            f.close()
+        client.release_collection(
+            collection_name = dt,
+        )
 
-            for i in all_res:
-                if (dt == 'types'):
-                    relevant_context += datas[i['id']]['abstract']
+        f = open(all_res[0][names[0]][0]['data_path'], 'r')
+        datas = json.load(f)
+        f.close()
+
+        for i in range(len(all_res)):
+            name = names[i]
+            bundled_data = all_res[i][name]
+            data = None
+
+            retrieved_name = ''
+            for r in bundled_data:
+                r_relative_path = datas[r['id']]['relative_path']
+
+                if (r_relative_path == current_relative_path):
+                    continue
                 else:
-                    relevant_context += datas[i['id']]['raw']
+                    data = r
+                    retrieved_name = datas[data['id']]['name']
 
-        return relevant_context
+                    break
+
+            all_names.append(
+                {
+                    name: retrieved_name,
+                }
+            )
+
+            if (data is None):
+                continue
+
+            if (dt == 'types'):
+                if (retrieved_name in retrieved_name_set):
+                    continue
+                else:
+                    retrieved_name_set.add(retrieved_name)
+
+                # print(proj_name, datas[data['id']].keys())
+
+                relevant_context += datas[data['id']]['abstract']
+                if ('abstract_compact' in datas[data['id']].keys()):
+                    relevant_context_no_cmt += datas[data['id']]['abstract_compact']
+            else:
+                relevant_context += datas[data['id']]['raw']
+
+    return relevant_context, relevant_context_no_cmt, all_names
 
 class query_by_thread(Thread):
     def __init__(self, client, db_name, embedded_retrieval_elements, testcase, df):
@@ -149,33 +202,59 @@ class query_by_thread(Thread):
         self.df = df
 
     def run(self):
-        res = retrieve(self.client, self.db_name, self.embedded_retrieval_elements)
+        proj_name = self.df.iloc[self.testcase]['proj_name']
+        relative_path = self.df.iloc[self.testcase]['relative_path']
+        res, res_no_cmt, all_names = retrieve(
+            self.client, self.db_name, proj_name, relative_path, self.embedded_retrieval_elements
+        )
 
-        self.df.loc[self.testcase, 'relevant_context'] = res
+        self.df.at[self.testcase, 'relevant_context'] = res
+        self.df.at[self.testcase, 'relevant_context_no_cmt'] = res_no_cmt
+        self.df.at[self.testcase, 'retrieved_names'] = json.dumps(all_names)
 
 class create_work_queue_by_thread(Thread):
-    def __init__(self, id, row, work_queue, repo_list_map):
+    def __init__(self, id, row, work_queue, repo_list_map, retrieval_column):
         Thread.__init__(self)
         self.id = id
         self.row = row
         self.work_queue = work_queue
         self.repo_list_map = repo_list_map
+        self.retrieval_column = retrieval_column
 
     def run(self):
         row = self.row
         work_queue = self.work_queue
         repo_list_map = self.repo_list_map
         id = self.id
+        retrieval_column = self.retrieval_column
 
         db_name = repo_list_map[row['proj_name']]
-        retrieval_elements = row['retrieval_element']
+        retrieval_elements = row[retrieval_column]
         embedded_retrieval_elements = {}
 
-        for element in retrieval_elements:
+        for element in data_type:
+            if (element not in retrieval_elements.keys()):
+                continue
+
             if (len(retrieval_elements[element]) == 0):
                 continue
 
-            embedded_retrieval_elements[element] = embedding_model.encode_documents(list(retrieval_elements[element]))['dense']
+            c = []
+            for i in retrieval_elements[element]:
+                if (len(i) == 0):
+                    continue
+
+                c.append(i)
+
+            if (len(c) == 0):
+                continue
+
+            embedded_retrieval_elements[element] = {}
+            embedded_retrieval_element = embedding_model.encode_queries(list(retrieval_elements[element]))['dense']
+
+            for i in range(len(retrieval_elements[element])):
+                raw_data_name = retrieval_elements[element][i]
+                embedded_retrieval_elements[element][raw_data_name] = embedded_retrieval_element[i]
 
         work_queue[db_name].append(
             {
@@ -193,6 +272,47 @@ def main():
         help = 'scan for new databases'
     )
 
+    parser.add_argument(
+        '--reset',
+        action = 'store_true',
+        help = 'reset the relevant_context and retrieved_names columns'
+    )
+
+    parser.add_argument(
+        '--l',
+        type = int,
+        help = 'lower bound of the dataset (inclusive) ( [l, r) )',
+        default = 0,
+    )
+
+    parser.add_argument(
+        '--r',
+        type = int,
+        help = 'upper bound of the dataset (exclusive) ( [l, r) )',
+        default = 10000000000000000,
+    )
+
+    parser.add_argument(
+        '--src_name',
+        type = str,
+        help = 'data source file name',
+        default = 'source.parquet',
+    )
+
+    parser.add_argument(
+        '--name',
+        type = str,
+        help = 'saved file name',
+        default = 'i_did_it.parquet',
+    )
+
+    parser.add_argument(
+        '--retrieval_column',
+        type = str,
+        help = 'column contains the retrieval elements',
+        default = 'retrieval_element',
+    )
+
     args = parser.parse_args()
 
     scan_db = False
@@ -202,9 +322,21 @@ def main():
     encoded_repo_list, repo_list_map = create_repo_list(scan_db)
     print(len(encoded_repo_list))
 
-    data_name = 'i_did_it.parquet'
+    data_name = args.src_name
     df = pd.read_parquet(f'{data_prefix}/{data_name}')
-    res_name = 'i_did_it1.parquet'
+    if ('relevant_context' not in df.columns):
+            df['relevant_context'] = None
+    if ('relevant_context_no_cmt' not in df.columns):
+            df['relevant_context_no_cmt'] = None
+    if ('retrieved_names' not in df.columns):
+        df['retrieved_names'] = None
+        df['retrieved_names'] = df['retrieved_names'].astype(object)
+    if (args.reset):
+        df['relevant_context'] = None
+        df['relevant_context_no_cmt'] = None
+        df['retrieved_names'] = None
+        df['retrieved_names'] = df['retrieved_names'].astype(object)
+    res_name = args.name
 
     thread_cnt = len(encoded_repo_list)
     clients = []
@@ -219,8 +351,16 @@ def main():
     for (key, value) in repo_list_map.items():
         work_queue[value] = []
 
+    l = args.l
+    l = max(0, l)
+    l = min(l, len(df) - 1)
+    r = args.r
+    r = max(0, r)
+    r = min(r, len(df))
+
     threads = []
-    ids = [i for i in range(len(df))]
+    ids = [i for i in range(l, r)]
+    print(l, r)
     for i in tqdm(ids, 'build work queue'):
         row = df.iloc[i]
 
@@ -229,6 +369,7 @@ def main():
             row = row,
             work_queue = work_queue,
             repo_list_map = repo_list_map,
+            retrieval_column = args.retrieval_column
         )
         b.start()
         threads.append(b)
@@ -285,6 +426,36 @@ def main():
         end_flag = False
         for key in work_queue:
             end_flag = end_flag or (len(work_queue[key]) > 0)
+
+    # for key in work_queue:
+    #     queue = work_queue[key]
+
+    #     working_on = []
+
+    #     dt_work_queue = {
+    #         'types': [],
+    #         'methods': [],
+    #         'fields': [],
+    #     }
+    #     for testcase in queue:
+    #         dt_work_queue[testcase['']]
+
+    #     rows -= len(working_on)
+    #     print(f'working on: {working_on}')
+    #     print(f'remaining: {rows}')
+    #     print()
+
+    #     for thread in threads:
+    #         thread.start()
+
+    #     for thread in threads:
+    #         thread.join()
+
+    #     df.to_parquet(f'{data_prefix}/{res_name}')
+
+    #     end_flag = False
+    #     for key in work_queue:
+    #         end_flag = end_flag or (len(work_queue[key]) > 0)
 
 if (__name__ == '__main__'):
     main()

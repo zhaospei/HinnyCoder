@@ -19,3 +19,5 @@ data/
 *.db
 *.json
 retrieval/docker/volumes/
+retrieval/*.txt
+raw_gen/
