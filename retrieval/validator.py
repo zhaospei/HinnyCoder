@@ -108,9 +108,9 @@ def create_repo_list(scan_db = False):
     return encoded_repo_list, repo_list_map
 
 encoded_repo_list, repo_list_map = create_repo_list()
-print(f'number of repos: {len(encoded_repo_list)}')
+print(f'number of repos: {len(encoded_repo_list)}\n')
 
-data_type = ['types']
+data_type = ['types', 'methods']
 
 conn = connections.connect(
     host = '127.0.0.1',
@@ -194,7 +194,7 @@ class validate_by_thread(Thread):
             else:
                 invalid.append(repo['repo'])
 
-        print()
+        print('-' * 100)
 
 def validate(repo, max_row, max_db):
     client = MilvusClient(
@@ -263,7 +263,7 @@ def validate(repo, max_row, max_db):
         else:
             invalid.append(repo['repo'])
 
-    print()
+    print('-' * 100)
 
 # thr = []
 # for repo in encoded_repo_list:

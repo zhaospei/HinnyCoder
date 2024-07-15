@@ -11,7 +11,7 @@ data_prefix = 'data'
 raw_prefix = f'{data_prefix}/raw'
 db_prefix = f'{data_prefix}/database'
 
-data_type = ['types']
+data_type = ['types', 'methods', 'similar_methods',]
 search_params = {
     'metric_type': 'L2',
     'params': {
@@ -89,16 +89,25 @@ def retrieve(client, db_name, proj_name, relative_path, embedded_retrieval_eleme
     relevant_context = ''
     relevant_context_no_cmt = ''
     current_relative_path = os.path.join(proj_name, relative_path)
-    all_names = []
+    retrieved_names = {}
+    retrieved_types = []
+    retrieved_methods = []
+    similar_methods = []
     retrieved_name_set = set()
     for dt in data_type:
         if (dt not in embedded_retrieval_elements):
             continue
 
+        retrieved_names[dt] = []
+
+        collection_name = dt
+        if (dt == 'similar_methods'):
+            collection_name = 'methods'
+
         while(True):
             try:
                 client.load_collection(
-                    collection_name = dt,
+                    collection_name = collection_name,
                 )
 
                 break
@@ -111,7 +120,7 @@ def retrieve(client, db_name, proj_name, relative_path, embedded_retrieval_eleme
         # optimize here!!!
 
         retrieved_candidates = client.search(
-            collection_name = dt,
+            collection_name = collection_name,
             data = things_we_need_to_find,
             limit = 3,
             search_params = search_params,
@@ -130,7 +139,7 @@ def retrieve(client, db_name, proj_name, relative_path, embedded_retrieval_eleme
             wres = []
             for ai_di in ids:
                 res = client.get(
-                    collection_name = dt,
+                    collection_name = collection_name,
                     ids = [ai_di],
                 )
 
@@ -143,7 +152,7 @@ def retrieve(client, db_name, proj_name, relative_path, embedded_retrieval_eleme
             )
 
         client.release_collection(
-            collection_name = dt,
+            collection_name = collection_name,
         )
 
         f = open(all_res[0][names[0]][0]['data_path'], 'r')
@@ -167,7 +176,7 @@ def retrieve(client, db_name, proj_name, relative_path, embedded_retrieval_eleme
 
                     break
 
-            all_names.append(
+            retrieved_names[dt].append(
                 {
                     name: retrieved_name,
                 }
@@ -184,13 +193,50 @@ def retrieve(client, db_name, proj_name, relative_path, embedded_retrieval_eleme
 
                 # print(proj_name, datas[data['id']].keys())
 
-                relevant_context += datas[data['id']]['abstract']
-                if ('abstract_compact' in datas[data['id']].keys()):
-                    relevant_context_no_cmt += datas[data['id']]['abstract_compact']
-            else:
-                relevant_context += datas[data['id']]['raw']
+                raw_body = datas[data['id']]['abstract']
+                raw_body_no_cmt = ''
 
-    return relevant_context, relevant_context_no_cmt, all_names
+                relevant_context += raw_body
+                if ('abstract_compact' in datas[data['id']].keys()):
+                    raw_body_no_cmt = datas[data['id']]['abstract_compact']
+                    relevant_context_no_cmt += raw_body_no_cmt
+
+                retrieved_types.append(
+                    {
+                        name: {
+                            'retrieved_name': retrieved_name,
+                            'raw_body': raw_body,
+                            'raw_body_no_cmt': raw_body_no_cmt,
+                        },
+                    },
+                )
+            else:
+                raw_body = datas[data['id']]['raw']
+
+                relevant_context += raw_body
+                # no data for no cmt
+                relevant_context_no_cmt += raw_body
+
+                if (dt == 'methods'):
+                    retrieved_methods.append(
+                        {
+                            name: {
+                                'retrieved_name': retrieved_name,
+                                'raw_body': raw_body,
+                            },
+                        },
+                    )
+                elif (dt == 'similar_methods'):
+                    similar_methods.append(
+                        {
+                            name: {
+                                'retrieved_name': retrieved_name,
+                                'raw_body': raw_body,
+                            },
+                        },
+                    )
+
+    return relevant_context, relevant_context_no_cmt, retrieved_names, retrieved_types, retrieved_methods, similar_methods
 
 class query_by_thread(Thread):
     def __init__(self, client, db_name, embedded_retrieval_elements, testcase, df):
@@ -204,13 +250,16 @@ class query_by_thread(Thread):
     def run(self):
         proj_name = self.df.iloc[self.testcase]['proj_name']
         relative_path = self.df.iloc[self.testcase]['relative_path']
-        res, res_no_cmt, all_names = retrieve(
+        res, res_no_cmt, retrieved_names, retrieved_types, retrieved_methods, similar_methods = retrieve(
             self.client, self.db_name, proj_name, relative_path, self.embedded_retrieval_elements
         )
 
         self.df.at[self.testcase, 'relevant_context'] = res
         self.df.at[self.testcase, 'relevant_context_no_cmt'] = res_no_cmt
-        self.df.at[self.testcase, 'retrieved_names'] = json.dumps(all_names)
+        self.df.at[self.testcase, 'retrieved_names'] = json.dumps(retrieved_names)
+        self.df.at[self.testcase, 'retrieved_types'] = json.dumps(retrieved_types)
+        self.df.at[self.testcase, 'retrieved_methods'] = json.dumps(retrieved_methods)
+        self.df.at[self.testcase, 'similar_methods'] = json.dumps(similar_methods)
 
 class create_work_queue_by_thread(Thread):
     def __init__(self, id, row, work_queue, repo_list_map, retrieval_column):
@@ -252,6 +301,10 @@ class create_work_queue_by_thread(Thread):
             embedded_retrieval_elements[element] = {}
             embedded_retrieval_element = embedding_model.encode_queries(list(retrieval_elements[element]))['dense']
 
+            # embedded_retrieval_element = []
+            # for i_name in list(retrieval_elements[element]):
+            #     embedded_retrieval_element.append(embedding_model.encode_queries([i_name])['dense'][0])
+
             for i in range(len(retrieval_elements[element])):
                 raw_data_name = retrieval_elements[element][i]
                 embedded_retrieval_elements[element][raw_data_name] = embedded_retrieval_element[i]
@@ -275,7 +328,7 @@ def main():
     parser.add_argument(
         '--reset',
         action = 'store_true',
-        help = 'reset the relevant_context and retrieved_names columns'
+        help = 'reset all the output columns'
     )
 
     parser.add_argument(
@@ -324,18 +377,17 @@ def main():
 
     data_name = args.src_name
     df = pd.read_parquet(f'{data_prefix}/{data_name}')
-    if ('relevant_context' not in df.columns):
-            df['relevant_context'] = None
-    if ('relevant_context_no_cmt' not in df.columns):
-            df['relevant_context_no_cmt'] = None
-    if ('retrieved_names' not in df.columns):
-        df['retrieved_names'] = None
-        df['retrieved_names'] = df['retrieved_names'].astype(object)
+
+    output_columns = [
+        'relevant_context', 'relevant_context_no_cmt', 'retrieved_names', 'retrieved_types', 'retrieved_methods', 'similar_methods',
+    ]
+    for col in output_columns:
+        if (col not in df.columns):
+            df[col] = None
     if (args.reset):
-        df['relevant_context'] = None
-        df['relevant_context_no_cmt'] = None
-        df['retrieved_names'] = None
-        df['retrieved_names'] = df['retrieved_names'].astype(object)
+        for col in output_columns:
+            df[col] = None
+
     res_name = args.name
 
     thread_cnt = len(encoded_repo_list)
@@ -384,7 +436,7 @@ def main():
     for (key, value) in work_queue.items():
         rows += len(value)
 
-    print(f'number of rows: {rows}')
+    print(f'number of rows: {rows}\n')
 
     end_flag = True
     while(end_flag):
