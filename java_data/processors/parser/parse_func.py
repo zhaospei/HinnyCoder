@@ -1,6 +1,5 @@
 import logging
 import os
-import re
 from argparse import ArgumentParser
 from multiprocessing import Pool
 from subprocess import run
@@ -72,14 +71,15 @@ def processor(args):
     logger.addHandler(
         logging.FileHandler(f"{log_dir}/parse-function_{index}.log")
     )
-    retrieval_elements = []
+    retrieval_types = []
+    retrieval_methods = []
     for _, row in tqdm(
         df.iterrows(), total=len(df), desc=f"Proc {index}", position=index
     ):
         filled_files = fill_file(row, project_storage_dir, generated_code_col)
         types = set()
-        # methods = set()
-        # fields = set()
+        methods = set()
+
         for filled_file in filled_files:
             source_path = f"{parse_function}/tmp{index}.txt"
             with open(source_path, "w", encoding="utf-8", errors="ignore") as f:
@@ -99,21 +99,25 @@ def processor(args):
                         f"<encounter_error> {row['proj_name']}/{row['relative_path']}"
                     )
                 else:
-                    types.update(result.stdout.split("\n")[:-1])
-                    # methods.update(extract_list(result.stdout, "Methods"))
-                    # fields.update(extract_list(result.stdout, "Fields"))
+                    elements = result.stdout.split("\n")[:-1]
+                    if elements[0] == "<types>":
+                        i = 1
+                        while i < len(elements) and elements[i] != "<methods>":
+                            types.add(elements[i])
+                            i += 1
+                        i += 1
+                        while i < len(elements):
+                            methods.add(elements[i])
+                            i += 1
+                
             except:
                 logger.error(
                     f"<encounter_error> {row['proj_name']}/{row['relative_path']}"
                 )
-        retrieval_element = {
-            "types": types,
-            # "methods": methods,
-            # "fields": fields,
-        }
-
-        retrieval_elements.append(retrieval_element)
-    df["ground_truth_re"] = retrieval_elements
+        retrieval_types.append(types)
+        retrieval_methods.append(methods)
+    df[f"{generated_code_col}_re_type"] = retrieval_types
+    df[f"{generated_code_col}_re_method"] = retrieval_methods
     return df
 
 

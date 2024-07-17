@@ -3,7 +3,6 @@ import codecs
 import multiprocessing as mp
 import random
 import re
-from subprocess import run
 from typing import List, NamedTuple, Optional, Tuple
 
 import pandas as pd
