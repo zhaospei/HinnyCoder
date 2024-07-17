@@ -84,6 +84,14 @@ def main(args):
                 dataset['all_combined_relevant_context'],
             )
         ]
+    elif args.task == 'similar_methods_context':
+        sources = [
+            '<｜fim▁begin｜>' + masked_class.replace('<FILL_FUNCTION_BODY>', '<｜fim▁hole｜>') + build_relevant_context(context) + '<｜fim▁end｜>'
+            for (masked_class, context ) in zip(
+                dataset['masked_class'],
+                dataset['similar_methods_context'],
+            )
+        ]
     else:
         raise ValueError(f'Invalid task: {args.task}')
     
