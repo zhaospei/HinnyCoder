@@ -50,7 +50,7 @@ def main(args):
     context = ['\n'.join(x) for x in zip(*list_context)]
     
     sources = [
-        '<｜fim▁begin｜>' + masked_class.replace('<FILL_FUNCTION_BODY>', '<｜fim▁hole｜>') + build_relevant_context(context) + '<｜fim▁end｜>'
+        '<｜fim▁begin｜>' + build_relevant_context(context) + masked_class.replace('<FILL_FUNCTION_BODY>', '<｜fim▁hole｜>') + '<｜fim▁end｜>'
         for (masked_class, context ) in zip(
             dataset['masked_class'],
             context,
