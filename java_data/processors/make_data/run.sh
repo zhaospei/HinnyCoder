@@ -1,6 +1,5 @@
-
-python /home/hieuvd/lvdthieu/CodeGen/java_data/make-data/make_data.py \
-        --input /home/hieuvd/lvdthieu/java-files.parquet \
-        --dir /home/hieuvd/lvdthieu/repos/processed-projects \
-        --workers 35 \
-        --output /home/hieuvd/lvdthieu/java-dataset.parquet
+python /home/hieuvd/lvdthieu/code-generation/java_data/processors/make_data/run.py \
+        --input /home/hieuvd/lvdthieu/new_total.parquet \
+        --dir /data/hieuvd/lvdthieu/repos/processed-projects \
+        --proc 10 \
+        --output /home/hieuvd/lvdthieu/valid_total.parquet

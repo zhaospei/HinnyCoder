@@ -8,7 +8,7 @@ from multiprocessing import Pool
 from typing import List, Optional, Tuple
 
 import pandas as pd
-from make_data.make_data import get_functions, get_location
+from make_data.run import get_functions, get_location
 from tqdm import tqdm
 
 pp = pprint.PrettyPrinter(depth=4, indent=4)

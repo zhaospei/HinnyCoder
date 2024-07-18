@@ -2,13 +2,25 @@ import argparse
 import json
 import logging
 import os
-from subprocess import run
+import subprocess
 
 import pandas as pd
 from tqdm import tqdm
 
 
-def get_context(json_dir, project_name, qualified_name):
+def get_context(json_dir: str, project_name: str, qualified_name: str) -> str:
+    """Get abstract implementation of java class corresponding to 
+        `project_name` and `qualified_name`
+
+    Args:
+        json_dir (str): Where store parsed project result json files
+        project_name (str): Project name
+        qualified_name (str): Class qualified name
+
+    Returns:
+        str: Abstract implementation of java class if qualified name is in 
+        parsed project json file else return <not_self_defined_class>
+    """
     with open(f"{json_dir}/{project_name}_type.json", "r") as f:
         types = json.load(f)
     for type in types:
@@ -43,46 +55,8 @@ def processor(args):
             f"{row['func_name']}"
         )
         try:
-            result = run(cmd, shell=True, text=True, capture_output=True)
+            result = subprocess.run(cmd, shell=True, text=True, capture_output=True)
             output = result.stdout.strip()
-            print(output)
-            # match output:
-            #     case (
-            #         "<encounter_error>"
-            #         | "<no_class>"
-            #         | "<cant_find_class>"
-            #         | "<cant_resolve_binding>"
-            #         | "<super_class_null>"
-            #     ):
-            #         logger.error(
-            #             "{:<25} {:<40} {}".format(
-            #                 output, row["proj_name"], row["relative_path"]
-            #             )
-            #         )
-            #         initial_context.append("<no_super_class>")
-            #     case "<no_super_class>":
-            #         logger.info(
-            #             "{:<40} {} {}".format(
-            #                 row["proj_name"],
-            #                 row["relative_path"],
-            #                 "has no super class",
-            #             )
-            #         )
-            #         initial_context.append("<no_super_class>")
-            #     case _:
-            #         logger.info(
-            #             "{:<40} {} {}".format(
-            #                 row["proj_name"],
-            #                 row["relative_path"],
-            #                 "has super class",
-            #             )
-            #         )
-            #         super_class_context = get_context(
-            #             json_dir,
-            #             row["proj_name"],
-            #             qualified_name=output,
-            #         )
-            #         initial_context.append(super_class_context)
             if output == "<encounter_error>":
                 logger.error(
                     "{:<25} {:<40} {}".format(

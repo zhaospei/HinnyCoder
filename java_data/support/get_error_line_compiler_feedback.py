@@ -4,7 +4,7 @@ import re
 from typing import Optional
 
 import pandas as pd
-from make_data.make_data import get_functions, get_location
+from make_data.run import get_functions, get_location
 from tqdm import tqdm
 
 

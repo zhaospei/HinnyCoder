@@ -1,26 +1,21 @@
 import argparse
-import logging
+import collections
 import os
-from collections import Counter
-from subprocess import run
-from typing import List
+import subprocess
+from typing import List, Tuple
 
 import pandas as pd
-from tqdm import tqdm
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--dir", dest="dir")
-parser.add_argument("--output", dest="output")
 
 
 def get_java_file_urls(dir: str) -> List[str]:
+    """Get all java file url in directory"""
     os.chdir(dir)
     all_files = []
     for p in os.listdir():
         cmd = f"""
         find {p} -name *.java
         """
-        data = run(cmd, shell=True, text=True, capture_output=True)
+        data = subprocess.run(cmd, shell=True, text=True, capture_output=True)
         if data.stdout:
             files = data.stdout.split("\n")
             print(f"{p}: {len(files)}")
@@ -41,13 +36,15 @@ def filter_url(base_dir: str, java_file_urls: List[str]) -> List[str]:
     print("Length after filter 2:", len(java_file_urls))
 
     # java file must have corresponding class (mean that file is compiled)
-    valid_java_files = []
-    for url in tqdm(java_file_urls):
+    def has_corresponding_class_file(url: str) -> bool:
         class_path = url.replace("/src/main/java", "/target/classes").replace(
             ".java", ".class"
         )
-        if os.path.exists(f"{base_dir}/{class_path}"):
-            valid_java_files.append(url)
+        return os.path.exists(f"{base_dir}/{class_path}")
+
+    valid_java_files = [
+        url for url in java_file_urls if has_corresponding_class_file(url)
+    ]
     print("Length after filter 3:", len(valid_java_files))
     return valid_java_files
 
@@ -55,7 +52,7 @@ def filter_url(base_dir: str, java_file_urls: List[str]) -> List[str]:
 def construct_df(java_file_urls: List[str]) -> pd.DataFrame:
     """Dividing java file urls into fields"""
 
-    def func(url):
+    def func(url: str) -> Tuple[str, str]:
         parts = url.split("/")
         project_name = parts[0]
         relative_path = "/".join(parts[1:])
@@ -72,18 +69,18 @@ def construct_df(java_file_urls: List[str]) -> pd.DataFrame:
     return df
 
 
-def normalize_df(df: pd.DataFrame) -> pd.DataFrame:
-    cnt = Counter(df["proj_name"].tolist())
+def normalize_df(df: pd.DataFrame, max_num_sample: int) -> pd.DataFrame:
+    cnt = collections.Counter(df["proj_name"].tolist())
     new = pd.DataFrame(
         {"java_file_urls": [], "proj_name": [], "relative_path": []}
     )
     for p in cnt:
         print(p)
-        if cnt[p] <= 1256:
+        if cnt[p] <= max_num_sample:
             new = pd.concat([new, df[df["proj_name"] == p]], axis="index")
         else:
             tmp = df[df["proj_name"] == p]
-            tmp = tmp.sample(n=1256, random_state=0)
+            tmp = tmp.sample(n=max_num_sample, random_state=0)
             new = pd.concat([new, tmp], axis="index")
     new.reset_index(drop=True, inplace=True)
     return new
@@ -99,5 +96,8 @@ def main(args):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dir", dest="dir")
+    parser.add_argument("--output", dest="output")
     args = parser.parse_args()
     main(args)

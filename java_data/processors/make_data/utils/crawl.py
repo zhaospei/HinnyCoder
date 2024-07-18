@@ -1,20 +1,17 @@
 import argparse
 import json
-from subprocess import run
+import subprocess
 from typing import List, NamedTuple
 
 import requests
 from tqdm import tqdm
-
+import dotenv
+import os
+dotenv.load_dotenv(override=True) 
 HEADERS = {
-    "Authorization": "<GITHUB_TOKEN>",
+    "Authorization": f"{os.environ.get("GITHUB_API_KEY")}",
     "Accept": "application/vnd.github.v3+json",
 }
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--num-pages", dest="num_pages")
-parser.add_argument("--repo-info", dest="repos_info")
-parser.add_argument("--dir", dest="dir")
 
 
 class RepoMetadata(NamedTuple):
@@ -22,7 +19,7 @@ class RepoMetadata(NamedTuple):
 
 
 class Crawler:
-    def __init__(self, num_pages):
+    def __init__(self, num_pages: int):
         self.num_pages = num_pages
 
     def search_repo(self) -> List[RepoMetadata]:
@@ -33,8 +30,8 @@ class Crawler:
         """
         all_elements: List[RepoMetadata] = []
         for page in tqdm(
-            range(3, self.num_pages), desc="Crawling pages"
-        ):  # Temporary change 0 -> 3
+            range(self.num_pages), desc="Crawling pages"
+        ):
             url = f"https://api.github.com/search/repositories?q=language:java+pushed:>2023-10-01&sort=star&order=desc&per_page=100&page={page}"
             response = requests.get(url, headers=HEADERS)
             if response.status_code != 200:
@@ -100,12 +97,12 @@ class Crawler:
                 git clone --depth 1 https://github.com/{owner}/{repo}.git
             fi
             """
-            run(cmd, shell=True)
+            subprocess.run(cmd, shell=True)
 
 
 def main(args):
     # Crawl repo metadata and store into a file
-    crawler = Crawler(num_pages=int(args.num_pages))
+    crawler = Crawler(num_pages=args.num_pages)
     repo_metadata = crawler.search_repo()
     crawler.store_repo_metadata(repo_metadata, args.repos_info)
     repo_urls = crawler.get_repo_html_url(repo_metadata)
@@ -114,5 +111,9 @@ def main(args):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--num-pages", dest="num_pages", type=int)
+    parser.add_argument("--repo-info", dest="repos_info")
+    parser.add_argument("--dir", dest="dir")
     args = parser.parse_args()
     main(args)

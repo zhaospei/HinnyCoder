@@ -7,19 +7,19 @@ import subprocess
 from typing import List, Optional
 
 import pandas as pd
-from make_data.make_data import get_functions, get_location
+from make_data.run import get_functions, get_location
 from tqdm import tqdm
 
 
 class CompilerExecutor:
     def __init__(
         self,
-        df: pd.DataFrame,
-        column_to_check: str,
-        proj_storage_dir: str,
-        log_dir: str,
-        mvn: str,
-        index: int,
+        df: pd.DataFrame = pd.DataFrame(),
+        column_to_check: str = "generated_code",
+        proj_storage_dir: str = "",
+        log_dir: str = "/home/hieuvd/lvdthieu/log_compile",
+        mvn: str = "",
+        index: int = 0,
     ):
         """Constructor
 
@@ -37,10 +37,11 @@ class CompilerExecutor:
         self.index = index
         self.logger = logging.getLogger(f"logger{self.index}")
         self.log_dir = log_dir
-        self.logger.addHandler(logging.FileHandler(f"{self.log_dir}/compiler_{self.index}.log"))
+        self.logger.addHandler(
+            logging.FileHandler(f"{self.log_dir}/compiler_{self.index}.log")
+        )
         self.logger.setLevel(logging.INFO)
         self.mvn = mvn
-        
 
     def _fill_file(self, row: pd.Series) -> Optional[str]:
         absolute_file_path = "{}/{}/{}".format(
@@ -212,12 +213,9 @@ def main(args):
     dfs = group_dataframes(dfs, args.proc)
     if not os.path.exists(args.log_dir):
         os.makedirs(args.log_dir, exist_ok=True)
-    additional_args = (
-        args.col,
-        args.base_dir,
-        args.log_dir,
-        args.mvn
-    )
+    else:
+        os.system(f"rm -rf {args.log_dir}/*")
+    additional_args = (args.col, args.base_dir, args.log_dir, args.mvn)
     list_args = []
     for i in range(len(dfs)):
         list_args.append((dfs[i],) + additional_args + (i,))
@@ -238,3 +236,4 @@ if __name__ == "__main__":
     parser.add_argument("--proc", dest="proc", type=int)
     args = parser.parse_args()
     main(args)
+
