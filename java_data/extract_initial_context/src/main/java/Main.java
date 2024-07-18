@@ -68,7 +68,7 @@ public class Main {
             CompilationUnit cu = createCU(projectName, projectDir, filePath);
             int numClass = cu.types().size();
             if (numClass == 0) {
-                return "<no_class>";
+                return "";  // There is no class in current file
             }
             AbstractTypeDeclaration targetClass = null;
             for (int i = 0; i < numClass; i++) {
@@ -79,26 +79,26 @@ public class Main {
                 }
             }
             if (targetClass == null) {
-                return "<cant_find_class>";
+                return "";  // The target class is not exist in current file
             }
             if (targetClass instanceof TypeDeclaration) {
                 ITypeBinding binding = ((TypeDeclaration) targetClass)
                         .resolveBinding();
                 if (binding == null) {
-                    return "<cant_resolve_binding>";
+                    return "";  // Can not resolve binding target class (may be happen when the target class is inner class of a outer class)
                 }
                 ITypeBinding superClass = binding.getSuperclass();
                 if (superClass == null) {
-                    return "<super_class_null>";
+                    return "";  // The super class is null (happen when the current class is Object class)
                 }
                 String superClassQualifiedName = superClass.getQualifiedName();
                 if (superClassQualifiedName.equals("java.lang.Object")) {
-                    return "<no_super_class>";
+                    return "";  // The current class is not inherit from another class
                 } else {
                     return superClassQualifiedName;
                 }
             } else {
-                return "<no_super_class>";
+                return "";  // Target class is one of this AnnotationType, Enum, ImplicitType, Record which will have no parent class
             }
         } catch (Exception e) {
             return "<encounter_error>";
@@ -137,12 +137,20 @@ public class Main {
         String relativePath = args[2];
         String className = args[3];
         String methodName = args[4];
+        String task = args[5];
         String projectDir = baseDir + "/" + projectName;
         String filePath = projectDir + "/" + relativePath;
-        // String parentClass = extractParentClass(projectName, projectDir,
-        // filePath, className);
-        String paramTypeDeclarations = extractParamTypes(projectName,
-                projectDir, filePath, className, methodName);
-        System.out.println(paramTypeDeclarations);
+        switch (task) {
+            case "parent":
+                String parentClass = extractParentClass(projectName, projectDir,
+                        filePath, className);
+                System.out.println(parentClass);
+                break;
+            case "param":
+                String paramTypeDeclarations = extractParamTypes(projectName,
+                        projectDir, filePath, className, methodName);
+                System.out.println(paramTypeDeclarations);
+                break;
+        }
     }
 }

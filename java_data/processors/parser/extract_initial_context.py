@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 
 def get_context(json_dir: str, project_name: str, qualified_name: str) -> str:
-    """Get abstract implementation of java class corresponding to 
+    """Get abstract implementation of java class corresponding to
         `project_name` and `qualified_name`
 
     Args:
@@ -18,7 +18,7 @@ def get_context(json_dir: str, project_name: str, qualified_name: str) -> str:
         qualified_name (str): Class qualified name
 
     Returns:
-        str: Abstract implementation of java class if qualified name is in 
+        str: Abstract implementation of java class if qualified name is in
         parsed project json file else return <not_self_defined_class>
     """
     with open(f"{json_dir}/{project_name}_type.json", "r") as f:
@@ -30,7 +30,7 @@ def get_context(json_dir: str, project_name: str, qualified_name: str) -> str:
 
 
 def processor(args):
-    df, parser, base_dir, json_dir, class_path, index, log_dir = args
+    df, parser, base_dir, json_dir, class_path, index, log_dir, task = args
     logger = logging.Logger(f"extract_initial_context", logging.INFO)
     if not os.path.exists(log_dir):
         os.makedirs(log_dir, exist_ok=True)
@@ -39,7 +39,7 @@ def processor(args):
     logger.addHandler(
         logging.FileHandler(f"{log_dir}/extract_initial_context_{index}.log")
     )
-    initial_context = []
+    context = []
     cnt = 0
     for _, row in tqdm(
         df.iterrows(), total=len(df), desc=f"Proc {index}", position=index
@@ -52,10 +52,13 @@ def processor(args):
             f"{row['proj_name']} "
             f"{row['relative_path']} "
             f"{row['class_name']} "
-            f"{row['func_name']}"
+            f"{row['func_name']} "
+            f"{task}"
         )
         try:
-            result = subprocess.run(cmd, shell=True, text=True, capture_output=True)
+            result = subprocess.run(
+                cmd, shell=True, text=True, capture_output=True
+            )
             output = result.stdout.strip()
             if output == "<encounter_error>":
                 logger.error(
@@ -63,60 +66,64 @@ def processor(args):
                         output, row["proj_name"], row["relative_path"]
                     )
                 )
-                initial_context.append("<no_param_class")
+                if task == "param":
+                    context.append("<no_param_class")
+                else:
+                    context.append("<no_parent_class>")
             elif not output:
                 logger.info(
-                    "{:<40} {} {}".format(
+                    "{:<40} {:<160} has no {} class".format(
                         row["proj_name"],
                         row["relative_path"],
-                        "has no param class",
+                        task,
                     )
                 )
-                initial_context.append("<no_param_class>")
+                if task == "param":
+                    context.append("<no_param_class")
+                else:
+                    context.append("<no_parent_class>")
             else:
-                param_types = output.split("\n")
-                param_type_contexts = ""
-                for param_type in param_types:
-                    param_type_context = get_context(
+                types = output.split("\n")
+                type_context = ""
+                for type in types:
+                    ctx = get_context(
                         json_dir,
                         row["proj_name"],
-                        qualified_name=param_type,
+                        qualified_name=type,
                     )
-                    if param_type_context != "<not_self_defined_class>":
-                        param_type_contexts += (
-                            param_type_context + "<param_class>"
-                        )
-                if param_type_contexts:
-                    initial_context.append(param_type_contexts)
+                    if ctx != "<not_self_defined_class>":
+                        type_context += ctx + "\n"
+                if type_context:
+                    context.append(type_context)
                     logger.info(
-                        "{:<40} {} {}".format(
+                        "{:<40} {:<160} has {} class".format(
                             row["proj_name"],
                             row["relative_path"],
-                            "has param class",
+                            task,
                         )
                     )
                 else:
-                    initial_context.append("<not_self_defined_class>")
+                    context.append("<not_self_defined_class>")
                     logger.info(
-                        "{:<40} {} {}".format(
-                            row["proj_name"],
-                            row["relative_path"],
-                            "has not self defined class",
+                        "{:<40} {:<160} has not self defined class".format(
+                            row["proj_name"], row["relative_path"]
                         )
                     )
         except:
             logger.error(
                 "{:<25} {:<40} {}".format(
-                    "<run_command>", row["proj_name"], row["relative_path"]
+                    "<run_command_error>",
+                    row["proj_name"],
+                    row["relative_path"],
                 )
             )
-            initial_context.append("<error>")
+            context.append("<error>")
         cnt += 1
         if cnt % 100 == 0:
             log_df = df.iloc[:cnt]
-            log_df["initial_context"] = initial_context
+            log_df["context"] = context
             log_df.to_parquet(f"{log_dir}/log_extract_initial_context.parquet")
-    df["param_context"] = initial_context
+    df[f"{task}_context"] = context
     return df
 
 
@@ -132,6 +139,7 @@ def main(args):
             class_path,
             0,
             args.log_dir,
+            args.task,
         )
     )
     new_df.to_parquet(args.output)
@@ -146,5 +154,6 @@ if __name__ == "__main__":
     parser.add_argument("--json-dir", dest="json_dir")
     parser.add_argument("--num-proc", dest="num_proc")
     parser.add_argument("--log-dir", dest="log_dir")
+    parser.add_argument("--task", dest="task", choices=["parent", "param"])
     args = parser.parse_args()
     main(args)
