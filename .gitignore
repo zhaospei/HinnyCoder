@@ -20,4 +20,5 @@ data/
 *.json
 retrieval/docker/volumes/
 retrieval/*.txt
+retrieval/test.py
 raw_gen/

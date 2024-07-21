@@ -1,15 +1,13 @@
 datas = []
 
-name = 'name'
-retrieved_name = 'reioanwf'
-
 datas.append(
     {
-        name: {
-            're': retrieved_name,
-            'raw': 123,
-        },
+        'name': '123',
+        'raw': 123,
     },
 )
 
-print(datas)
+import json
+f = json.dumps(datas, indent = 4)
+
+print(f)
