@@ -127,7 +127,7 @@ class CompilerExecutor:
                     self.logger.info("\tGot compile info successfully")
                     compiler_feedback = self._extract_error(compile_info)
                     self.logger.info("\tExtracted error successfully")
-                except:
+                except Exception:
                     self.logger.error("\tEncounter error while executing")
                     raise Exception("Encounter exception when executing")
                 finally:

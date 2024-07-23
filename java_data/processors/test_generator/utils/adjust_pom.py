@@ -1,9 +1,6 @@
 import logging
-import os
 import xml.etree.ElementTree as ET
-from subprocess import run
-
-import pandas as pd
+import subprocess
 from tqdm import tqdm
 
 
@@ -152,7 +149,7 @@ for project in tqdm(projects, total=len(projects), desc="Changing pom"):
         f"&& /home/hieuvd/apache-maven-3.6.3/bin/mvn clean install -DskipTests -Dcheckstyle.skip -Dgpg.skip -Dlicense.skip"
     )
     # result = run(cmd, shell=True, capture_output=True)
-    result = run(cmd, shell=True)
+    result = subprocess.run(cmd, shell=True)
     if result.returncode != 0:
         logger.error(f"Still can not install {path_to_pom}")
     else:

@@ -64,7 +64,7 @@ def randoop_gen_test(
         result = run(
             cmd, shell=True, text=True, capture_output=True, timeout=60
         )
-    except:
+    except Exception:
         return False
     if result.returncode != 0:
         return False

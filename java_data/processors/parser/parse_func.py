@@ -109,7 +109,7 @@ def processor(args):
                             methods.add(elements[i])
                             i += 1
                 
-            except:
+            except Exception:
                 logger.error(
                     f"<encounter_error> {row['proj_name']}/{row['relative_path']}"
                 )

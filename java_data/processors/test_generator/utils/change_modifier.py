@@ -1,5 +1,4 @@
 import argparse
-import os
 import re
 
 import pandas as pd
@@ -50,7 +49,7 @@ def main(args):
             new_code = modify_modifier(code)
             with open(path_to_file, "w") as f:
                 f.write(new_code)
-        except:
+        except Exception:
             pass
 
 

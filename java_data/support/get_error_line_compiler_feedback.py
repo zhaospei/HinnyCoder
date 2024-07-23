@@ -74,7 +74,7 @@ def clear_compiler_feedback(
                         new_errors.append(error_msg)
                     else:
                         new_errors.append(error)
-                except:
+                except Exception:
                     pass
 
             return "\n".join(new_errors)

@@ -31,7 +31,7 @@ def processor(args):
         try:
             result = run(cmd, shell=True, text=True, capture_output=True)
             logger.error(result.stderr)
-        except:
+        except Exception:
             print("<encounter_error>", project)
 
 

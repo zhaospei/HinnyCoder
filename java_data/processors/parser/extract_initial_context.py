@@ -31,7 +31,7 @@ def get_context(json_dir: str, project_name: str, qualified_name: str) -> str:
 
 def processor(args):
     df, parser, base_dir, json_dir, class_path, index, log_dir, task = args
-    logger = logging.Logger(f"extract_initial_context", logging.INFO)
+    logger = logging.Logger("extract_initial_context", logging.INFO)
     if not os.path.exists(log_dir):
         os.makedirs(log_dir, exist_ok=True)
     else:
@@ -109,7 +109,7 @@ def processor(args):
                             row["proj_name"], row["relative_path"]
                         )
                     )
-        except:
+        except Exception:
             logger.error(
                 "{:<25} {:<40} {}".format(
                     "<run_command_error>",

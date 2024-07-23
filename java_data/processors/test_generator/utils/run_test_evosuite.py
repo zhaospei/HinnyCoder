@@ -1,5 +1,9 @@
+import logging
 import os
 import subprocess
+
+import pandas as pd
+from tqdm import tqdm
 
 JUNIT = "/home/hieuvd/lvdthieu/code-generation/java_data/processors/test_executor/lib/junit-4.12.jar"
 HAMCREST = "/home/hieuvd/lvdthieu/code-generation/java_data/processors/test_executor/lib/hamcrest-core-1.3.jar"
@@ -8,11 +12,6 @@ RANDOOP = "/home/hieuvd/lvdthieu/code-generation/java_data/processors/test_gener
 RANDOOP_TEST_BASE = "/data/hieuvd/lvdthieu/repos/randoop"
 EVOSUITE_TEST_BASE = "/data/hieuvd/lvdthieu/repos/evosuite"
 
-import logging
-import subprocess
-
-import pandas as pd
-from tqdm import tqdm
 
 logger = logging.getLogger()
 logger.addHandler(

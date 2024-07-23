@@ -1,6 +1,5 @@
 import argparse
 import re
-from subprocess import run
 from typing import List, NamedTuple
 
 

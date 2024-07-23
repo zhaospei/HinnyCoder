@@ -72,7 +72,7 @@ class ExtractFunc(JavaParserListener):
                     "func_body_loc": func_body_loc,
                 }
             )
-        except:
+        except Exception:
             pass
 
     def get_functions(self):
@@ -121,7 +121,7 @@ def get_functions(java_code: str) -> Optional[List[Function]]:
         walker = ParseTreeWalker()
         walker.walk(listener, tree)
         functions = listener.get_functions()
-    except:
+    except Exception:
         return None
     return functions
 
@@ -259,7 +259,7 @@ def make_samples(argument: Tuple[str, str, str]):
                         "func_body": None,
                     }
                 ]
-        except:
+        except Exception:
             return [
                 {
                     "proj_name": None,
@@ -316,7 +316,8 @@ def make_dataset(
 
 
 def post_processing(dataset: pd.DataFrame) -> pd.DataFrame:
-    std = lambda x: re.sub(r"[\t\n\r ]", "", x)
+    def std(x):
+        return re.sub(r"[\t\n\r ]", "", x)
     dataset["std_func_body"] = dataset["func_body"].apply(std)
     dataset = dataset[dataset["std_func_body"] != ""]
     dataset.drop(columns=["std_func_body"], inplace=True)

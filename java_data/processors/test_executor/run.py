@@ -4,7 +4,6 @@
 import argparse
 import pprint
 import subprocess
-from multiprocessing import Pool
 from typing import List, Optional, Tuple
 
 import pandas as pd
@@ -446,7 +445,8 @@ def main(args):
         hamcrest_jar=args.hamcrest_jar,
         separator_code=args.separator_code,
     )
-    result = executor.execute()
+    executor.execute()
+    
 
 
 

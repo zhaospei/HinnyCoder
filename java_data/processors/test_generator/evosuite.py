@@ -32,7 +32,7 @@ def evosuite_gen_test(
     )
     try:
         result = run(cmd, shell=True, text=True, capture_output=True)
-    except:
+    except Exception:
         return False
     if result.returncode != 0:
         return False
@@ -63,7 +63,7 @@ def apply_modify(code, file):
         with open(file, "w") as f:
             f.write(code)
         return True
-    except:
+    except Exception:
         return False
 
 
