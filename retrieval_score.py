@@ -1,10 +1,15 @@
 import argparse
 import collections
 import json
+import re
 
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+
+
+def split_partition(type: str):
+    return re.findall(r"\b\w+\b", type)
 
 
 def recall_type(args):
@@ -16,10 +21,12 @@ def recall_type(args):
         with open(f"{args.json_dir}/{row['proj_name']}_type.json") as f:
             project_types = json.load(f)
         for gt_type in row[args.gt_col]:
-            for project_type in project_types:
-                if gt_type == project_type["name"]:
-                    gt_type_in_project.append(gt_type)
-                    break
+            partition_types = split_partition(gt_type)
+            for partition_type in partition_types:
+                for project_type in project_types:
+                    if partition_type == project_type["name"]:
+                        gt_type_in_project.append(partition_type)
+                        break
         if max_len < len(gt_type_in_project):
             max_len = len(gt_type_in_project)
         ground_truth.append(gt_type_in_project)
@@ -36,8 +43,15 @@ def recall_type(args):
             {"Num type": num_type, "Percentage": percentage}
         ).to_markdown()
     )
+    processed_pred = df[args.re_col].apply(
+        lambda type_array: [
+            partition
+            for type in type_array
+            for partition in split_partition(type)
+        ]
+    )
     re_recalls = [
-        len(set(df.loc[i, args.re_col]) & set(ground_truth[i]))
+        len(set(processed_pred[i]) & set(ground_truth[i]))
         / len(set(ground_truth[i]))
         for i in range(len(df))
         if len(set(ground_truth[i])) != 0
@@ -51,6 +65,16 @@ def recall_type(args):
         for dic in json.loads(df.loc[i, args.retrieved_col]).get("types", []):
             types.extend(dic.values())
         retrieved_types.append(types)
+    retrieved_types = list(
+        map(
+            lambda type_array: [
+                partition
+                for type in type_array
+                for partition in split_partition(type)
+            ],
+            retrieved_types
+        )
+    )
     retrieved_recalls = [
         len(set(retrieved_types[i]) & set(ground_truth[i]))
         / len(set(ground_truth[i]))
