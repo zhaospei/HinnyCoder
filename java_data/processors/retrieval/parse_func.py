@@ -115,8 +115,8 @@ def processor(args):
                 )
         retrieval_types.append(types)
         retrieval_methods.append(methods)
-    df[f"{generated_code_col}_re_type"] = retrieval_types
-    df[f"{generated_code_col}_re_method"] = retrieval_methods
+    df[f"{generated_code_col}.types"] = retrieval_types
+    df[f"{generated_code_col}.methods"] = retrieval_methods
     return df
 
 
