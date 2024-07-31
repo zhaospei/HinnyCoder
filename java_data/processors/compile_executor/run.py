@@ -4,9 +4,15 @@ import multiprocessing
 import os
 import re
 import subprocess
+import sys
+import warnings
 from typing import List, Optional
 
 import pandas as pd
+
+warnings.filterwarnings("ignore")
+
+sys.path.append(f"{os.path.dirname(os.path.abspath(__file__))}/..")
 from make_data.run import get_functions, get_location
 from tqdm import tqdm
 
@@ -155,7 +161,7 @@ class CompilerExecutor:
         ):
             counter += 1
             compiler_feedbacks.append(self._execute(row))
-            if counter % 50 == 0:
+            if counter % 10 == 0:
                 log_df = self.df.iloc[:counter]
                 log_df["compiler_feedback"] = compiler_feedbacks
                 log_df.to_parquet(

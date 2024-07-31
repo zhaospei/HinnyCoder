@@ -1,33 +1,31 @@
 import logging
 import os
+import subprocess
+import sys
 from argparse import ArgumentParser
-from subprocess import run
 from typing import List, Optional
 
 import pandas as pd
-from make_data.run import get_functions, get_location
 from tqdm import tqdm
+
+sys.path.append(f"{os.path.dirname(os.path.abspath(__file__))}/..")
+from make_data.run import get_functions, get_location
 
 
 def fill_file(
     row: pd.Series, project_storage_dir: str, generated_code_col: str
-) -> Optional[List[str]]:
+) -> Optional[str]:
     path_to_file = (
         f"{project_storage_dir}/{row['proj_name']}/{row['relative_path']}"
     )
-
     with open(path_to_file, "r", encoding="utf-8", errors="ignore") as f:
         original_file = f.read().replace("\r\n", "\n")
-
-    # candidates = row[generated_code_col].split("<candidate>")[:-1]
-    candidates = [row[generated_code_col]]
-    candidate_classes = []
-    for candidate in candidates:
-        candidate_classes.append(
-            row["masked_class"].replace("<FILL_FUNCTION_BODY>", candidate)
-        )
+    filled_class = row["masked_class"].replace(
+        "<FILL_FUNCTION_BODY>", row[generated_code_col]
+    )
     # Find class in original file
     functions = get_functions(original_file)
+
     if functions:
         for function in functions:
             if (
@@ -37,16 +35,12 @@ def fill_file(
                 class_start_idx, class_end_idx = get_location(
                     original_file, function["class_loc"]
                 )
-                filled_files = []
-                for filled_class in candidate_classes:
-                    filled_files.append(
-                        (
-                            original_file[:class_start_idx]
-                            + filled_class
-                            + original_file[class_end_idx:]
-                        )
-                    )
-                return filled_files
+                filled_file = (
+                    original_file[:class_start_idx]
+                    + filled_class
+                    + original_file[class_end_idx:]
+                )
+                return filled_file
         return None
     else:
         return None
@@ -72,27 +66,38 @@ def processor(args):
     )
     retrieval_types = []
     retrieval_methods = []
+    filled_files = []
+    cnt_error = 0
     for _, row in tqdm(
         df.iterrows(), total=len(df), desc=f"Proc {index}", position=index
     ):
-        filled_files = fill_file(row, project_storage_dir, generated_code_col)
-        types = set()
-        methods = set()
-
-        for filled_file in filled_files:
-            source_path = f"{parse_function}/tmp{index}.txt"
+        try:
+            filled_file = fill_file(
+                row, project_storage_dir, generated_code_col
+            )
+            filled_files.append(filled_file)
+            types = set()
+            methods = set()
+            source_path = f"{parse_function}/source{index}.java"
+            method_body_path = f"{parse_function}/func{index}.java"
             with open(source_path, "w", encoding="utf-8", errors="ignore") as f:
                 f.write(filled_file)
-            method_name = row["func_name"]
+            with open(
+                method_body_path, "w", encoding="utf-8", errors="ignore"
+            ) as f:
+                f.write(row[generated_code_col])
             cmd = (
                 f"cd {parse_function}/target/classes "
                 f"&& java -cp {class_path} "
                 "Main "
                 f"{source_path} "
-                f"{method_name}"
+                f"{method_body_path}"
             )
+
             try:
-                result = run(cmd, shell=True, text=True, capture_output=True)
+                result = subprocess.run(
+                    cmd, shell=True, text=True, capture_output=True
+                )
                 if result.returncode != 0:
                     logger.error(
                         f"<encounter_error> {row['proj_name']}/{row['relative_path']}"
@@ -108,13 +113,18 @@ def processor(args):
                         while i < len(elements):
                             methods.add(elements[i])
                             i += 1
-                
             except Exception:
                 logger.error(
                     f"<encounter_error> {row['proj_name']}/{row['relative_path']}"
                 )
-        retrieval_types.append(types)
-        retrieval_methods.append(methods)
+            retrieval_types.append(types)
+            retrieval_methods.append(methods)
+
+        except Exception:
+            cnt_error += 1
+            retrieval_types.append(["<error>"])
+            retrieval_methods.append(["<error>"])
+    print("Number of errors:", cnt_error)
     df[f"{generated_code_col}.types"] = retrieval_types
     df[f"{generated_code_col}.methods"] = retrieval_methods
     return df
