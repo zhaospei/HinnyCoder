@@ -20,12 +20,11 @@ from tqdm import tqdm
 class CompilerExecutor:
     def __init__(
         self,
-        df: pd.DataFrame = pd.DataFrame(),
+        df: pd.DataFrame,
         column_to_check: str = "generated_code",
         proj_storage_dir: str = "",
-        log_dir: str = "./log_compile",
-        mvn: str = "",
-        index: int = 0,
+        log_dir: str = "log_compile",
+        tool: str = "defects4j",
     ):
         """Constructor
 
@@ -34,20 +33,17 @@ class CompilerExecutor:
             column_to_check (str): Column name in df that need to check compilability
             proj_storage_dir (str): Where to store all projects
             log_dir (str): Where to store log information
-            mvn (str): Runable maven file to compile java code
-            index (int): Compiler index
         """
         self.df = df
         self.column_to_check = column_to_check
         self.proj_storage_dir = proj_storage_dir
-        self.index = index
-        self.logger = logging.getLogger(f"logger{self.index}")
+        self.logger = logging.getLogger(f"logger")
         self.log_dir = log_dir
         self.logger.addHandler(
-            logging.FileHandler(f"{self.log_dir}/compiler_{self.index}.log")
+            logging.FileHandler(f"{self.log_dir}/compiler.log")
         )
         self.logger.setLevel(logging.INFO)
-        self.mvn = mvn
+        self.tool = tool
 
     def _fill_file(self, row: pd.Series) -> Optional[str]:
         absolute_file_path = "{}/{}/{}".format(
@@ -88,23 +84,20 @@ class CompilerExecutor:
         cmd = (
             f"cd {path_to_project} "
             "&& cd $(ls -d */|head -n 1) "
-            "&& echo $(pwd)"
-            f"&& {self.mvn} clean compile -DskipTests -Dcheckstyle.skip -Dgpg.skip=true -Dlicense.skip=true"
+            f"&& {self.tool} compile -w ."
         )
         data = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-        return data.stdout
+        return data.stderr
 
     def _extract_error(self, compile_info: str):
-        err_pattern = r"^\[ERROR\] (?P<file>.+?):\[(?P<line>\d+),(?P<col>\d+)\] (?P<err>.+)$"
-        file_errors = []
-        errors = set(re.findall(err_pattern, compile_info, re.MULTILINE))
-        for error in errors:
-            file, line, col, err = error
-            file = file.replace(self.proj_storage_dir + "/", "")
-            file_errors.append(
-                f"""<file>{file}<line>{line}<col>{col}<err>{err}"""
-            )
-        return "\n".join(file_errors)
+        if "BUILD FAILURE" in compile_info:
+            lines = compile_info.split("\n")
+            javac_lines = [
+                line for line in lines if line.startswith("    [javac]")
+            ]
+            return "\n".join(javac_lines)
+        else:
+            return "<success>"
 
     def _execute(self, row: pd.Series) -> bool:
         self.logger.info(
@@ -142,8 +135,8 @@ class CompilerExecutor:
                     ) as f:
                         f.write(original_file)
                     self.logger.info("\tWrote back")
-            if not compiler_feedback:
-                compiler_feedback = "<success>"
+            # if not compiler_feedback:
+            #     compiler_feedback = "<success>"
 
         except Exception:
             compiler_feedback = "<execute_error>"
@@ -155,18 +148,15 @@ class CompilerExecutor:
         counter = 0
         for _, row in tqdm(
             self.df.iterrows(),
-            desc=f"Proc {self.index}",
+            desc=f"Compiling",
             total=len(self.df),
-            position=self.index,
         ):
             counter += 1
             compiler_feedbacks.append(self._execute(row))
             if counter % 10 == 0:
                 log_df = self.df.iloc[:counter]
                 log_df["compiler_feedback"] = compiler_feedbacks
-                log_df.to_parquet(
-                    f"{self.log_dir}/executor{self.index}.parquet"
-                )
+                log_df.to_parquet(f"{self.log_dir}/executor.parquet")
         return compiler_feedbacks
 
 
@@ -203,9 +193,9 @@ def group_dataframes(df_list: List[pd.DataFrame], num_groups: int):
 
 
 def process_dataframe(args):
-    (df, column_to_check, proj_storage_dir, log_dir, mvn, index) = args
+    (df, column_to_check, proj_storage_dir, log_dir, tool) = args
     compiler = CompilerExecutor(
-        df, column_to_check, proj_storage_dir, log_dir, mvn, index
+        df, column_to_check, proj_storage_dir, log_dir, tool
     )
     compiler_feedbacks = compiler.execute()
     df["compiler_feedback"] = compiler_feedbacks
@@ -221,10 +211,10 @@ def main(args):
         os.makedirs(args.log_dir, exist_ok=True)
     else:
         os.system(f"rm -rf {args.log_dir}/*")
-    additional_args = (args.col, args.base_dir, args.log_dir, args.mvn)
+    additional_args = (args.col, args.base_dir, args.log_dir, args.tool)
     list_args = []
     for i in range(len(dfs)):
-        list_args.append((dfs[i],) + additional_args + (i,))
+        list_args.append((dfs[i],) + additional_args)
     with multiprocessing.Pool(args.proc) as p:
         results = p.map(process_dataframe, list_args)
     final_result = pd.concat(results, axis=0)
@@ -238,7 +228,7 @@ if __name__ == "__main__":
     parser.add_argument("--col", dest="col")
     parser.add_argument("--base-dir", dest="base_dir")
     parser.add_argument("--log-dir", dest="log_dir")
-    parser.add_argument("--mvn", dest="mvn")
+    parser.add_argument("--tool", dest="tool")
     parser.add_argument("--proc", dest="proc", type=int)
     args = parser.parse_args()
     main(args)

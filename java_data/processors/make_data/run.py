@@ -33,59 +33,119 @@ class Function(NamedTuple):
     func_body_loc: Location
 
 
+# class ExtractFunc(JavaParserListener):
+#     def __init__(self, java_code):
+#         super().__init__()
+#         self.functions = []
+#         # self.classes = []
+#         # self.java_code = java_code
+
+#     def enterClassDeclaration(self, ctx):
+#         self.class_name = ctx.identifier().getText()
+#         self.class_loc = Location(
+#             ctx.start.line,
+#             ctx.start.column,
+#             ctx.stop.line,
+#             ctx.stop.column + len(ctx.stop.text),
+#         )
+#         # class_name = ctx.identifier().getText()
+#         # class_loc = Location(
+#         #     ctx.start.line,
+#         #     ctx.start.column,
+#         #     ctx.stop.line,
+#         #     ctx.stop.column + len(ctx.stop.text),
+#         # )
+#         # self.classes.append({"class_name": class_name, "class_loc": class_loc})
+
+#     def enterMethodDeclaration(self, ctx):
+#         # If method is void method ignore it
+#         # if ctx.typeTypeOrVoid().getText() == "void":
+#         #     return
+
+#         # body = ctx.methodBody().block()
+#         # if not body:
+#         #     return
+#         # func_name = ctx.identifier().getText()
+#         # func_body_loc = Location(
+#         #     body.start.line,
+#         #     body.start.column,
+#         #     body.stop.line,
+#         #     body.stop.column + len(body.stop.text),
+#         # )
+#         # try:
+#         #     self.functions.append(
+#         #         {
+#         #             "func_name": func_name,
+#         #             "func_body_loc": func_body_loc,
+#         #         }
+#         #     )
+#         # except Exception:
+#         #     pass
+#         self.func_name = ctx.identifier().getText()
+#         body = ctx.methodBody().block()
+#         if not body:
+#             return
+#         self.func_body_loc = Location(
+#             body.start.line,
+#             body.start.column,
+#             body.stop.line,
+#             body.stop.column + len(body.stop.text),
+#         )
+#         try:
+#             self.functions.append(
+#                 {
+#                     "class_name": self.class_name,
+#                     "class_loc": self.class_loc,
+#                     "func_name": self.func_name,
+#                     "func_body_loc": self.func_body_loc,
+#                 }
+#             )
+#         except:
+#             pass
+
+#     def get_functions(self):
+#         # for i in range(len(self.functions)):
+#         #     func_start_idx, func_end_idx = get_location(
+#         #         self.java_code, self.functions[i]["func_body_loc"]
+#         #     )
+#         #     for cl in self.classes:
+#         #         class_start_idx, class_end_idx = get_location(
+#         #             self.java_code, cl["class_loc"]
+#         #         )
+#         #         if (
+#         #             class_start_idx < func_start_idx
+#         #             and class_end_idx > func_end_idx
+#         #         ):
+#         #             self.functions[i]["class_name"] = cl["class_name"]
+#         #             self.functions[i]["class_loc"] = cl["class_loc"]
+#         #             break
+#         # return self.functions
+#         return self.functions
+
+
 class ExtractFunc(JavaParserListener):
     def __init__(self, java_code):
         super().__init__()
         self.functions = []
-        # self.classes = []
-        # self.java_code = java_code
+        self.classes = []
+        self.java_code = java_code
 
     def enterClassDeclaration(self, ctx):
-        self.class_name = ctx.identifier().getText()
-        self.class_loc = Location(
+        class_name = ctx.identifier().getText()
+        class_loc = Location(
             ctx.start.line,
             ctx.start.column,
             ctx.stop.line,
             ctx.stop.column + len(ctx.stop.text),
         )
-        # class_name = ctx.identifier().getText()
-        # class_loc = Location(
-        #     ctx.start.line,
-        #     ctx.start.column,
-        #     ctx.stop.line,
-        #     ctx.stop.column + len(ctx.stop.text),
-        # )
-        # self.classes.append({"class_name": class_name, "class_loc": class_loc})
+        self.classes.append({"class_name": class_name, "class_loc": class_loc})
 
     def enterMethodDeclaration(self, ctx):
-        # If method is void method ignore it
-        # if ctx.typeTypeOrVoid().getText() == "void":
-        #     return
-
-        # body = ctx.methodBody().block()
-        # if not body:
-        #     return
-        # func_name = ctx.identifier().getText()
-        # func_body_loc = Location(
-        #     body.start.line,
-        #     body.start.column,
-        #     body.stop.line,
-        #     body.stop.column + len(body.stop.text),
-        # )
-        # try:
-        #     self.functions.append(
-        #         {
-        #             "func_name": func_name,
-        #             "func_body_loc": func_body_loc,
-        #         }
-        #     )
-        # except Exception:
-        #     pass
-        self.func_name = ctx.identifier().getText()
         body = ctx.methodBody().block()
         if not body:
             return
-        self.func_body_loc = Location(
+        func_name = ctx.identifier().getText()
+        func_body_loc = Location(
             body.start.line,
             body.start.column,
             body.stop.line,
@@ -94,32 +154,31 @@ class ExtractFunc(JavaParserListener):
         try:
             self.functions.append(
                 {
-                    "class_name": self.class_name,
-                    "class_loc": self.class_loc,
-                    "func_name": self.func_name,
-                    "func_body_loc": self.func_body_loc,
+                    "func_name": func_name,
+                    "func_body_loc": func_body_loc,
                 }
             )
-        except:
+        except Exception:
             pass
 
     def get_functions(self):
-        # for i in range(len(self.functions)):
-        #     func_start_idx, func_end_idx = get_location(
-        #         self.java_code, self.functions[i]["func_body_loc"]
-        #     )
-        #     for cl in self.classes:
-        #         class_start_idx, class_end_idx = get_location(
-        #             self.java_code, cl["class_loc"]
-        #         )
-        #         if (
-        #             class_start_idx < func_start_idx
-        #             and class_end_idx > func_end_idx
-        #         ):
-        #             self.functions[i]["class_name"] = cl["class_name"]
-        #             self.functions[i]["class_loc"] = cl["class_loc"]
-        #             break
-        # return self.functions
+        for i in range(len(self.functions)):
+            func_start_idx, func_end_idx = get_location(
+                self.java_code, self.functions[i]["func_body_loc"]
+            )
+            for cl in self.classes:
+                class_start_idx, class_end_idx = get_location(
+                    self.java_code, cl["class_loc"]
+                )
+                if (
+                    class_start_idx < func_start_idx
+                    and class_end_idx > func_end_idx
+                ):
+                    self.functions[i]["class_name"] = cl["class_name"]
+                    self.functions[i]["class_loc"] = cl["class_loc"]
+                    break
+            else:
+                print("Something go wrong")
         return self.functions
 
 
@@ -239,18 +298,23 @@ def modified_mask_function(
         )
         func_body = java_code[func_body_start_idx + 1 : func_body_end_idx - 1]
 
-        if (
-            " ".join(func_body.split()) == " ".join(expected_func_body.split())
-            and function["func_name"] == expected_func_name
-        ):
-            result.append(
-                ASample(
-                    class_name=function["class_name"],
-                    func_name=function["func_name"],
-                    masked_class=masked_class,
-                    func_body=func_body,
+        if function["func_name"] == expected_func_name:
+            if " ".join(func_body.split()) == " ".join(
+                expected_func_body.split()
+            ):
+                result.append(
+                    ASample(
+                        class_name=function["class_name"],
+                        func_name=function["func_name"],
+                        masked_class=masked_class,
+                        func_body=func_body,
+                    )
                 )
-            )
+            else:
+                print(repr(func_body))
+                print("-" * 100)
+                print(repr(expected_func_body))
+
     return result
 
 
