@@ -25,6 +25,7 @@ class CompilerExecutor:
         proj_storage_dir: str = "",
         log_dir: str = "log_compile",
         tool: str = "defects4j",
+        index: int = 0,
     ):
         """Constructor
 
@@ -37,10 +38,11 @@ class CompilerExecutor:
         self.df = df
         self.column_to_check = column_to_check
         self.proj_storage_dir = proj_storage_dir
-        self.logger = logging.getLogger(f"logger")
         self.log_dir = log_dir
+        self.index = index
+        self.logger = logging.getLogger(f"logger{self.index}")
         self.logger.addHandler(
-            logging.FileHandler(f"{self.log_dir}/compiler.log")
+            logging.FileHandler(f"{self.log_dir}/compiler{self.index}.log")
         )
         self.logger.setLevel(logging.INFO)
         self.tool = tool
@@ -87,10 +89,11 @@ class CompilerExecutor:
             f"&& {self.tool} compile -w ."
         )
         data = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        self.logger.info(f"\t{data.stderr}")
         return data.stderr
 
     def _extract_error(self, compile_info: str):
-        if "BUILD FAILURE" in compile_info:
+        if "BUILD FAILED" in compile_info:
             lines = compile_info.split("\n")
             javac_lines = [
                 line for line in lines if line.startswith("    [javac]")
@@ -150,13 +153,14 @@ class CompilerExecutor:
             self.df.iterrows(),
             desc=f"Compiling",
             total=len(self.df),
-        ):
+            position=self.index
+        ):   
             counter += 1
             compiler_feedbacks.append(self._execute(row))
             if counter % 10 == 0:
                 log_df = self.df.iloc[:counter]
                 log_df["compiler_feedback"] = compiler_feedbacks
-                log_df.to_parquet(f"{self.log_dir}/executor.parquet")
+                log_df.to_parquet(f"{self.log_dir}/executor{self.index}.parquet")
         return compiler_feedbacks
 
 
@@ -193,9 +197,9 @@ def group_dataframes(df_list: List[pd.DataFrame], num_groups: int):
 
 
 def process_dataframe(args):
-    (df, column_to_check, proj_storage_dir, log_dir, tool) = args
+    (df, column_to_check, proj_storage_dir, log_dir, tool, index) = args
     compiler = CompilerExecutor(
-        df, column_to_check, proj_storage_dir, log_dir, tool
+        df, column_to_check, proj_storage_dir, log_dir, tool, index
     )
     compiler_feedbacks = compiler.execute()
     df["compiler_feedback"] = compiler_feedbacks
@@ -214,7 +218,7 @@ def main(args):
     additional_args = (args.col, args.base_dir, args.log_dir, args.tool)
     list_args = []
     for i in range(len(dfs)):
-        list_args.append((dfs[i],) + additional_args)
+        list_args.append((dfs[i],) + additional_args + (i,))
     with multiprocessing.Pool(args.proc) as p:
         results = p.map(process_dataframe, list_args)
     final_result = pd.concat(results, axis=0)
