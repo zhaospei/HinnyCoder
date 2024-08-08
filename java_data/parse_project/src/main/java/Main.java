@@ -370,7 +370,7 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        Config.JAVAFX_DIR = "/home/lvdthieu/";
+        Config.JAVAFX_DIR = "/home/hieuvd/lvdthieu/javafx-jmods-17.0.10";
         String baseDir = args[0];
         String projectName = args[1];
         String projectDir = baseDir + "/" + projectName;
