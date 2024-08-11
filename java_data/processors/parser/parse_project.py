@@ -25,6 +25,8 @@ def processor(args):
             f"{base_dir} "
             f"{project}"
         )
+        # print(cmd)
+        # break
         try:
             result = run(cmd, shell=True, text=True, capture_output=True)
             logger.error(result.stderr)

@@ -1,21 +1,11 @@
-
-        String key = getInput("请输入KEY:");
-        check(key);
-
-        BigDecimal balance = getBalance(key);
-        System.out.println("当前余额: " + balance);
-
-        ChatGPT chatGPT = ChatGPT.builder()
-                .apiKey(key)
-                .proxy(proxy)
-                .build()
-                .init();
-
-        while (true) {
-            String input = getInput("请输入问题:");
-            if (input.equals("exit")) {
-                break;
+        double minValue = 0;
+        Integer minPos = null;
+        for (int i = tableau.getNumObjectiveFunctions(); i < tableau.getWidth() - 1; i++) {
+            final double entry = tableau.getEntry(0, i);
+            if (entry < minValue) {
+                minValue = entry;
+                minPos = i;
             }
-            String answer = chatGPT.chat(input);
-            System.out.println("回答: " + answer);
         }
+        return minPos;
+    

@@ -82,8 +82,7 @@ class TestExecutor:
         project_dir: str,
     ):
         if os.path.exists(project_dir):
-            self.logger.info("\tAlready created tmp workspace")
-            return
+            os.system(f"rm -rf {project_dir}")
         try:
             cmd = f"""
             {self.tool} checkout -p {identifier} -v {version} -w {project_dir}
@@ -117,25 +116,36 @@ class TestExecutor:
     def _test_feedback(self, project_dir: str, list_test: List[str]):
         # Run test
         try:
-            cmd = f"""
-            {self.tool} test -w {project_dir} -t {' '.join(list_test)}
-            """
-            res = subprocess.run(
-                cmd, shell=True, capture_output=True, text=True
-            )
-            self.logger.info(f"\t{res.stderr}")
-            pattern = r"Failing tests: (\d+)"
-            match = re.search(pattern, res.stdout)
-            if match:
-                test_failed = int(match.group(1))
-                if test_failed == 0:
-                    return "<success>"
+            wrong_tests = []
+            for test in list_test:
+                cmd = f"""
+                {self.tool} test -w {project_dir} -t {test}
+                """
+                try:
+                    res = subprocess.run(
+                        cmd, shell=True, capture_output=True, text=True, timeout=600
+                    )
+                except:
+                    wrong_tests.append("Test case timeout")
+                    continue
+                self.logger.info(f"\t{res.stdout}")
+                pattern = r"Failing tests: (\d+)"
+                match = re.search(pattern, res.stdout)
+                if match:
+                    test_failed = int(match.group(1))
+                    if test_failed == 0:
+                        continue
+                    else:
+                        wrong_tests.append(res.stdout)
                 else:
-                    return res.stdout
+                    wrong_tests.append(res.stderr)
+            if not wrong_tests:
+                return "<success>"
             else:
-                return res.stderr
+                return "\n".join(wrong_tests)
         except Exception:
             self.logger("\tCan not run test")
+            return "<error>"
 
     def _execute(self, row):
         self.logger.info(
@@ -161,11 +171,10 @@ class TestExecutor:
         counter = 0
         for _, row in tqdm(
             self.df.iterrows(),
-            desc=f"Compiling",
+            desc=f"Testing",
             total=len(self.df),
             position=self.index,
         ):
-
             counter += 1
             test_feedbacks.append(self._execute(row))
             if counter % 10 == 0:
@@ -204,7 +213,7 @@ def main(args):
         results = p.map(process_dataframe, list_args)
     final_result = pd.concat(results, axis=0)
     print(
-        "Pass test rate: {:.2f}".format(
+        "\n\n\n\n\nPass test rate: {:.2f}".format(
             100
             * len(final_result[final_result["test_feedback"] == "<success>"])
             / len(final_result)
