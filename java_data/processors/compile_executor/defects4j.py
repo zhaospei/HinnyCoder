@@ -209,7 +209,7 @@ def process_dataframe(args):
 def main(args):
     df = pd.read_parquet(args.input)
     # Test
-    df = df.sample(frac=1)
+    # df = df.sample(frac=1)
     proj_group = df.groupby(by="proj_name")
     dfs = [proj_group.get_group(x) for x in proj_group.groups]
     dfs = group_dataframes(dfs, args.proc)
