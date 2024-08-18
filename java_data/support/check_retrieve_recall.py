@@ -6,7 +6,7 @@ import json
 
 df = pd.read_parquet("/home/thieuluu/HinnyCoder/java_data/data/rambo_sketch_output_with_retrieved_type_method.parquet")
 actual = pd.read_parquet("/home/thieuluu/HinnyCoder/java_data/data/rambo_upperbound_rambo_re.parquet")
-num_methods = collections.Counter(actual["ground_truth.methods"].apply(lambda x: len(x)))
+
 parsed = "/home/thieuluu/HinnyCoder/parsed_rambo"
 
 res = []

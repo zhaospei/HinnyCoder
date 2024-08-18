@@ -132,6 +132,7 @@ def processor(args):
 
 def main(args):
     df = pd.read_parquet(args.input)
+    # df = df.loc[:5]
     class_path = "." f":'{args.parse_function}/target/dependency/*'"
     new_df = processor(
         (

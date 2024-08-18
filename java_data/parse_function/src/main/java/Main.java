@@ -3,7 +3,7 @@ import org.eclipse.jdt.core.dom.*;
 
 import java.nio.file.*;
 
-import java.util.Map;
+// import java.util.Map;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.ArrayList;
@@ -23,15 +23,17 @@ public class Main {
     }
 
     public static class Visitor extends ASTVisitor {
-        private final HashMap<String, String> variables = new HashMap<>();
+        private final HashMap<String, List<String>> variables = new HashMap<>();
+        private final HashMap<String, String> fields = new HashMap<>();
         private final List<String> methodNames = new ArrayList<>();
 
         @Override
         public boolean visit(FieldDeclaration node) {
             for (Object fragment : node.fragments()) {
                 VariableDeclarationFragment varFragment = (VariableDeclarationFragment) fragment;
-                variables.put(varFragment.getName().getIdentifier(),
-                        node.getType().toString());
+                String fieldName = varFragment.getName().getIdentifier();
+                String fieldType = node.getType().toString();
+                fields.put(fieldName, fieldType);
             }
             return super.visit(node);
         }
@@ -41,17 +43,24 @@ public class Main {
             if (node.getParent() instanceof VariableDeclarationStatement) {
                 VariableDeclarationStatement declaration = (VariableDeclarationStatement) node
                         .getParent();
-                variables.put(node.getName().getIdentifier(),
-                        declaration.getType().toString());
-
+                String variableName = node.getName().getIdentifier();
+                String variableType = declaration.getType().toString();
+                if (!variables.keySet().contains(variableName)) {
+                    variables.put(variableName, new ArrayList<String>());
+                }
+                variables.get(variableName).add(variableType);
             }
             return super.visit(node);
         }
 
         @Override
         public boolean visit(SingleVariableDeclaration node) {
-            variables.put(node.getName().getIdentifier(),
-                    node.getType().toString());
+            String variableName = node.getName().getIdentifier();
+            String variableType = node.getType().toString();
+            if (!variables.keySet().contains(variableName)) {
+                variables.put(variableName, new ArrayList<String>());
+            }
+            variables.get(variableName).add(variableType);
             return super.visit(node);
         }
 
@@ -74,12 +83,22 @@ public class Main {
             return super.visit(node);
         }
 
+        public boolean visit(ClassInstanceCreation node) {
+
+            methodNames.add(node.getType().toString());
+            return super.visit(node);
+        }
+
         public List<String> getMethodNames() {
             return methodNames;
         }
 
-        public HashMap<String, String> getVariables() {
+        public HashMap<String, List<String>> getVariables() {
             return variables;
+        }
+
+        public HashMap<String, String> getFields() {
+            return fields;
         }
     }
 
@@ -96,13 +115,13 @@ public class Main {
             Visitor contentVisitor = new Visitor();
             funcCU.accept(contentVisitor);
             List<String> methodNames = contentVisitor.getMethodNames();
-            HashMap<String, String> variables = contentVisitor.getVariables();
-            
-
+            HashMap<String, List<String>> variables = contentVisitor
+                    .getVariables();
+            HashMap<String, String> fields = contentVisitor.getFields();
             // Filter method name not in target method
             LinkedHashSet<String> methodNamesInTargetMethod = new LinkedHashSet<>();
             for (String name : methodNames) {
-                Pattern pattern = Pattern.compile("\\." + name + "\\(");
+                Pattern pattern = Pattern.compile(name + "\\(");
                 Matcher matcher = pattern.matcher(methodRaw);
                 if (matcher.find()) {
                     methodNamesInTargetMethod.add(name);
@@ -112,17 +131,37 @@ public class Main {
             // Filter variable name not in target method
             LinkedHashSet<String> fieldNamesInTargetMethod = new LinkedHashSet<>();
             LinkedHashSet<String> typeNamesInTargetMethod = new LinkedHashSet<>();
-            for (Map.Entry<String, String> mapElement : variables.entrySet()) {
-                if (mapElement.getValue().matches(
+            for (String variableName : variables.keySet()) {
+                for (String variableType : variables.get(variableName)) {
+                    if (variableType.matches(
+                            "(String|int|byte|short|long|float|double|boolean|char|Object|Integer|Long|Double|Boolean|Character|CharSequence|Byte|Float|Long|Short).*")) {
+                        continue;
+                    }
+                    String tmpVariableName = Pattern.quote(variableName);
+                    // String tmpVariableType = Pattern.quote(variableType);
+                    // Pattern pattern = Pattern.compile("\\b" + tmpVariableType
+                    // + "\\s+" + tmpVariableName + "\\b");
+                    Pattern pattern = Pattern
+                            .compile("\\b" + tmpVariableName + "\\b");
+                    Matcher matcher = pattern.matcher(methodRaw);
+                    if (matcher.find()) {
+                        fieldNamesInTargetMethod.add(variableName);
+                        typeNamesInTargetMethod.add(variableType);
+                    }
+                }
+            }
+            for (String fieldName : fields.keySet()) {
+                String fieldType = fields.get(fieldName);
+                if (fieldType.matches(
                         "(String|int|byte|short|long|float|double|boolean|char|Object|Integer|Long|Double|Boolean|Character|CharSequence|Byte|Float|Long|Short).*")) {
                     continue;
                 }
-                Pattern pattern = Pattern
-                        .compile("\\b" + mapElement.getKey() + "\\b");
+                String tmpFieldName = Pattern.quote(fieldName);
+                Pattern pattern = Pattern.compile("\\b" + tmpFieldName + "\\b");
                 Matcher matcher = pattern.matcher(methodRaw);
                 if (matcher.find()) {
-                    fieldNamesInTargetMethod.add(mapElement.getKey());
-                    typeNamesInTargetMethod.add(mapElement.getValue());
+                    fieldNamesInTargetMethod.add(fieldName);
+                    typeNamesInTargetMethod.add(fieldType);
                 }
             }
             System.out.println("<types>");
@@ -134,7 +173,7 @@ public class Main {
                 System.out.println(method);
             }
         } catch (Exception e) {
-
+            e.printStackTrace();
         }
     }
 }
