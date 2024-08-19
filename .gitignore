@@ -26,3 +26,4 @@ log_compile/
 log_parse_project/
 defects4j/
 log*/
+.env
