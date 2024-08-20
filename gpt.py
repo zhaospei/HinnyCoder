@@ -41,8 +41,8 @@ def fetch_completion(
 ) -> dict:
     prompt = (
         "**Role**: You are a software programmer.\n"
-        "**Task**: As a programmer, you are required to fill the function body which is now marking by <infilling> token\n"
-        "**Code Formatting**: Please write only infilling code in\n"
+        "**Task**: As a programmer, you are required to fill the method body which is now marking by <infilling> token\n"
+        "**Code Formatting**: Please write only method body code in\n"
         "```java\n"
         "[Code]\n"
         "```\n"
@@ -61,7 +61,6 @@ def fetch_completion(
                     },
                     {"role": "user", "content": prompt},
                 ],
-                max_tokens=400,
                 temperature=0.0,
             )
             completion = completions.choices[0].message.content
@@ -81,7 +80,9 @@ if __name__ == "__main__":
     model = "gpt-3.5-turbo"
     language = "java"
     df = pd.read_json(
-        f"{CWD}/data/rambo_baseline.jsonl", lines=True, orient="records"
+        f"{CWD}/data/defects4j_sketch_type_method_no_em_lcontext_stable_gpt.jsonl",
+        lines=True,
+        orient="records",
     )
     dataset = df.to_dict(orient="records")
     dataset = dataset[20:]
@@ -107,7 +108,7 @@ if __name__ == "__main__":
     print("Generate code first time done!")
     updated_df = pd.DataFrame(dataset)
     updated_df.to_json(
-        f"{CWD}/data/rambo_baseline_res1.jsonl",
+        f"{CWD}/data/defects4j_sketch_type_method_no_em_lcontext_stable_gpt_res1.jsonl",
         lines=True,
         orient="records",
     )
