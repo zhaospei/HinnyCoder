@@ -42,7 +42,7 @@ def fetch_completion(
     prompt = (
         "**Role**: You are a software programmer.\n"
         "**Task**: As a programmer, you are required to fill the function body which is now marking by <infilling> token\n"
-        "**Code Formatting**: Please write code in\n"
+        "**Code Formatting**: Please write only infilling code in\n"
         "```java\n"
         "[Code]\n"
         "```\n"
@@ -72,7 +72,7 @@ def fetch_completion(
             code_block = ""
         if code_block != "":
             break
-    print(code_block)
+    # print(code_block)
     data_entry["prediction"] = code_block
     return data_entry
 
@@ -81,10 +81,10 @@ if __name__ == "__main__":
     model = "gpt-3.5-turbo"
     language = "java"
     df = pd.read_json(
-        f"{CWD}/data/defects4j_baseline.jsonl", lines=True, orient="records"
+        f"{CWD}/data/rambo_baseline.jsonl", lines=True, orient="records"
     )
     dataset = df.to_dict(orient="records")
-    # dataset = dataset[:1]
+    dataset = dataset[20:]
     with ThreadPoolExecutor(max_workers=5) as executor:
         future_to_entry = {
             executor.submit(
@@ -107,5 +107,7 @@ if __name__ == "__main__":
     print("Generate code first time done!")
     updated_df = pd.DataFrame(dataset)
     updated_df.to_json(
-        f"{CWD}/data/defects4j_baseline_res.jsonl", lines=True, orient="records"
+        f"{CWD}/data/rambo_baseline_res1.jsonl",
+        lines=True,
+        orient="records",
     )

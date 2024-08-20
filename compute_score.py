@@ -25,7 +25,6 @@ def em_prec_recall(refs, preds):
     
     print("EM: ", round(np.mean(EM)*100, 2))
 
-
 def Commitbleus(refs, preds):
     r_str_list = []
     p_str_list = []
@@ -43,7 +42,6 @@ def Commitbleus(refs, preds):
     B_Norm = round(codenn_bleu, 4)
 
     return B_Norm
-
 
 def read_to_list(filename, index):
     f = open(filename, 'r',encoding="utf-8")
