@@ -9,6 +9,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from openai import OpenAI
 from tqdm import tqdm
+import argparse
 
 CWD = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(override=True)
@@ -34,6 +35,22 @@ def extract_code_block(completion_string: str, language: str = "java") -> str:
     else:
         print("Error: No code block found")
     return completion_string
+
+
+def clean_output(output):
+    cur_bracket = 0
+    for idx, c in enumerate(output):
+        if c == '{':
+            cur_bracket += 1
+        elif c == '}':
+            cur_bracket -= 1
+        
+        # print(c, ' ', cur_bracket)
+        
+        if cur_bracket < 0:
+            return output[:idx]
+    
+    return output
 
 
 def fetch_completion(
@@ -65,6 +82,7 @@ def fetch_completion(
             )
             completion = completions.choices[0].message.content
             code_block = extract_code_block(completion)
+            code_block = clean_output(code_block)
         except Exception as e:
             print(repr(e))
             time.sleep(10)
@@ -72,15 +90,20 @@ def fetch_completion(
         if code_block != "":
             break
     # print(code_block)
+    data_entry["gpt"] = code_block
     data_entry["prediction"] = code_block
     return data_entry
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add("--input", dest="input")
+    parser.add("--output", dest="output")
+    args = parser.parse_args()
     model = "gpt-3.5-turbo"
     language = "java"
     df = pd.read_json(
-        f"{CWD}/data/baseline_bambo_240820.jsonl",
+        args.input,
         lines=True,
     )
     dataset = df.to_dict(orient="records")
@@ -107,7 +130,7 @@ if __name__ == "__main__":
     print("Generate code first time done!")
     updated_df = pd.DataFrame(dataset)
     updated_df.to_json(
-        f"{CWD}/data/baseline_bamboo_gpt_left_240821.jsonl",
+        args.output,
         lines=True,
         orient="records",
     )
