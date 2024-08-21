@@ -198,7 +198,7 @@ def process_dataframe(args):
 
 
 def main(args):
-    df = pd.read_parquet(args.input)
+    df = pd.read_json(args.input, lines=True)
     dfs = np.array_split(df, args.proc)
     if not os.path.exists(args.log_dir):
         os.makedirs(args.log_dir, exist_ok=True)
@@ -219,7 +219,7 @@ def main(args):
             / len(final_result)
         )
     )
-    final_result.to_parquet(args.output)
+    final_result.to_json(args.output, lines=True, orient="records")
 
 
 if __name__ == "__main__":

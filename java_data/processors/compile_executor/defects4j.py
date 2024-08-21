@@ -207,7 +207,7 @@ def process_dataframe(args):
 
 
 def main(args):
-    df = pd.read_parquet(args.input)
+    df = pd.read_json(args.input, lines=True)
     # Test
     # df = df.sample(frac=1)
     proj_group = df.groupby(by="proj_name")
@@ -231,7 +231,7 @@ def main(args):
             / len(final_result)
         )
     )
-    final_result.to_parquet(args.output)
+    final_result.to_json(args.output, lines=True, orient="records")
 
 
 if __name__ == "__main__":

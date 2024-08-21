@@ -80,7 +80,7 @@ if __name__ == "__main__":
     model = "gpt-3.5-turbo"
     language = "java"
     df = pd.read_json(
-        f"/home/lvdthieu/Documents/Projects/HinnyCoder/data/baseline_bambo_240820.jsonl",
+        f"{CWD}/data/baseline_bambo_240820.jsonl",
         lines=True,
     )
     dataset = df.to_dict(orient="records")
