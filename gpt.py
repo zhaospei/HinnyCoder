@@ -41,8 +41,8 @@ def fetch_completion(
 ) -> dict:
     prompt = (
         "**Role**: You are a software programmer.\n"
-        "**Task**: As a programmer, you are required to fill the method body which is now marking by <infilling> token\n"
-        "**Code Formatting**: Please write only method body code in\n"
+        f"**Task**: As a programmer, you are required to generate ONLY the method body which is now marking by <infilling> token\n"
+        "**Code Formatting**: Write ONLY the infilling method body code in\n"
         "```java\n"
         "[Code]\n"
         "```\n"
@@ -57,7 +57,7 @@ def fetch_completion(
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a software programmer.",
+                        "content": "You are a software programmer",
                     },
                     {"role": "user", "content": prompt},
                 ],
@@ -80,12 +80,11 @@ if __name__ == "__main__":
     model = "gpt-3.5-turbo"
     language = "java"
     df = pd.read_json(
-        f"{CWD}/data/defects4j_sketch_type_method_no_em_lcontext_stable_gpt.jsonl",
+        f"/home/lvdthieu/Documents/Projects/HinnyCoder/data/baseline_bambo_240820.jsonl",
         lines=True,
-        orient="records",
     )
     dataset = df.to_dict(orient="records")
-    dataset = dataset[20:]
+    dataset = dataset[100:]
     with ThreadPoolExecutor(max_workers=5) as executor:
         future_to_entry = {
             executor.submit(
@@ -108,7 +107,7 @@ if __name__ == "__main__":
     print("Generate code first time done!")
     updated_df = pd.DataFrame(dataset)
     updated_df.to_json(
-        f"{CWD}/data/defects4j_sketch_type_method_no_em_lcontext_stable_gpt_res1.jsonl",
+        f"{CWD}/data/baseline_bamboo_gpt_left_240821.jsonl",
         lines=True,
         orient="records",
     )
