@@ -97,8 +97,8 @@ def fetch_completion(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add("--input", dest="input")
-    parser.add("--output", dest="output")
+    parser.add_argument("--input", dest="input")
+    parser.add_argument("--output", dest="output")
     args = parser.parse_args()
     model = "gpt-3.5-turbo"
     language = "java"
@@ -107,7 +107,7 @@ if __name__ == "__main__":
         lines=True,
     )
     dataset = df.to_dict(orient="records")
-    dataset = dataset[100:]
+    # dataset = dataset[30:]
     with ThreadPoolExecutor(max_workers=5) as executor:
         future_to_entry = {
             executor.submit(
