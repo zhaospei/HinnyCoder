@@ -1,6 +1,5 @@
-.sh
-compile_executor/*.sh
-extract_relevant_context/*.sh
-make_data/*.sh
-test_executor/*.sh
-test_generator/*.sh
+*.parquet
+*.txt
+*.csv
+*.sh
+*/.vscode

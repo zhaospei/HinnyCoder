@@ -19,4 +19,11 @@ data/
 *.db
 *.json
 retrieval/docker/volumes/
+retrieval/*.txt
+retrieval/test.py
 raw_gen/
+log_compile/
+log_parse_project/
+defects4j/
+log*/
+.env

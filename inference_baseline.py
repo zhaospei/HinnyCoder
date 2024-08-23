@@ -50,28 +50,25 @@ def main(args):
     context = ['\n'.join(x) for x in zip(*list_context)]
     
     sources = [
-        '<｜fim▁begin｜>' + masked_class.replace('<FILL_FUNCTION_BODY>', '<｜fim▁hole｜>') + build_relevant_context(context) + '<｜fim▁end｜>'
+        '<｜fim▁begin｜>' + build_relevant_context(context) + masked_class.replace('<FILL_FUNCTION_BODY>', '<｜fim▁hole｜>') + '<｜fim▁end｜>'
         for (masked_class, context ) in zip(
             dataset['masked_class'],
             context,
         )
     ]
     
-    for source in sources:
-        write_string_to_file(args.output_file, source + '<nl>')
     
-    
-    # print("\n====== Start testing max input ======\n")
-    # max_len_input_str = max(sources, key=len)
-    # model_inputs = tokenizer(max_len_input_str, return_tensors="pt", padding=True, max_length=args.max_len_input, truncation=True).to("cuda")
-    # generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_len_output, pad_token_id=tokenizer.eos_token_id)
-    # print("\n====== Pass ======\n")
-    # batch_list = split_batch(sources, args.batch_size)
-    # len_batch = len(sources) // args.batch_size
-    # with tqdm(total=len_batch, desc="gen") as pbar:
-    #     for batch in batch_list:
-    #         model_inputs = tokenizer(batch, return_tensors="pt", padding=True, max_length=args.max_len_input, truncation=True).to("cuda")
-    #         generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_len_output, pad_token_id=tokenizer.eos_token_id)
+    print("\n====== Start testing max input ======\n")
+    max_len_input_str = max(sources, key=len)
+    model_inputs = tokenizer(max_len_input_str, return_tensors="pt", max_length=args.max_len_input, truncation=True).to("cuda")
+    generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_len_output, pad_token_id=tokenizer.eos_token_id)
+    print("\n====== Pass ======\n")
+    batch_list = split_batch(sources, args.batch_size)
+    len_batch = len(sources) // args.batch_size
+    with tqdm(total=len_batch, desc="gen") as pbar:
+        for batch in batch_list:
+            model_inputs = tokenizer(batch, return_tensors="pt", max_length=args.max_len_input, truncation=True).to("cuda")
+            generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_len_output, pad_token_id=tokenizer.eos_token_id)
 
     #         truncated_ids = [ids[len(model_inputs[idx]):] for idx, ids in enumerate(generated_ids)]
 
@@ -86,9 +83,9 @@ def main(args):
     #                 write_string_to_file(args.output_file, '<nl>')
     #         pbar.update(1)
 
-    # print("\n====== Finish inferencing ======\n")
+    print("\n====== Finish inferencing ======\n")
     
-    # print("Output file is saved at ", args.output_file)
+    print("Output file is saved at ", args.output_file)
 
 def parse_args():
     parser = argparse.ArgumentParser()
