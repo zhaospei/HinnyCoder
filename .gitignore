@@ -27,3 +27,5 @@ log_parse_project/
 defects4j/
 log*/
 .env
+*.java
+.idea/
