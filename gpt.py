@@ -1,6 +1,5 @@
 import concurrent.futures
 import copy
-import json
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -16,7 +15,6 @@ load_dotenv(override=True)
 
 # Setting API parameters
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-
 
 def extract_code_block(completion_string: str, language: str = "java") -> str:
     """Get the code block from the LLM answer
@@ -127,7 +125,7 @@ if __name__ == "__main__":
                 dataset[idx] = updated_entry
             except Exception as e:
                 print(repr(e))
-    print("Generate code first time done!")
+    print("Generate code done!")
     updated_df = pd.DataFrame(dataset)
     updated_df.to_json(
         args.output,

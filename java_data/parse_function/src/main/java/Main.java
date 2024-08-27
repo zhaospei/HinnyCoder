@@ -84,7 +84,6 @@ public class Main {
         }
 
         public boolean visit(ClassInstanceCreation node) {
-
             methodNames.add(node.getType().toString());
             return super.visit(node);
         }
@@ -102,6 +101,32 @@ public class Main {
         }
     }
 
+    // public static class AttributeVisitor extends ASTVisitor {
+    // HashMap<String, String> attributes = new HashMap<>();
+
+    // @Override
+    // public boolean visit(QualifiedName node) {
+    // attributes.put(node.toString(), node.getName().getIdentifier());
+    // return super.visit(node);
+    // }
+
+    // @Override
+    // public boolean visit(FieldAccess node) {
+    // attributes.put(node.toString(), node.getName().getIdentifier());
+    // return super.visit(node);
+    // }
+
+    // @Override
+    // public boolean visit(SuperFieldAccess node) {
+    // attributes.put(node.toString(), node.getName().getIdentifier());
+    // return super.visit(node);
+    // }
+
+    // public HashMap<String, String> getAttributes() {
+    // return attributes;
+    // }
+    // }
+
     public static void main(String[] args) {
         Config.JAVAFX_DIR = "/home/lvdthieu/Token";
         String sourcePath = args[0];
@@ -112,6 +137,23 @@ public class Main {
             CompilationUnit funcCU = parse(source);
             String methodRaw = new String(
                     Files.readAllBytes(Paths.get(methodRawPath)));
+            // AttributeVisitor visitor = new AttributeVisitor();
+            // funcCU.accept(visitor);
+            // HashMap<String, String> attributes = visitor.getAttributes();
+            // LinkedHashSet<String> attributeAccess = new LinkedHashSet<>();
+            // for (String key : attributes.keySet()) {
+            // String value = attributes.get(key);
+            // String tmpKey = Pattern.quote(key);
+            // Pattern pattern = Pattern.compile("\\b" + tmpKey + "\\b");
+            // Matcher matcher = pattern.matcher(methodRaw);
+            // if (matcher.find()) {
+            // attributeAccess.add(value);
+            // }
+            // }
+            // System.out.println("<attributes>");
+            // for (String attribute : attributeAccess) {
+            // System.out.println(attribute);
+            // }
             Visitor contentVisitor = new Visitor();
             funcCU.accept(contentVisitor);
             List<String> methodNames = contentVisitor.getMethodNames();
@@ -138,11 +180,11 @@ public class Main {
                         continue;
                     }
                     String tmpVariableName = Pattern.quote(variableName);
-                    // String tmpVariableType = Pattern.quote(variableType);
-                    // Pattern pattern = Pattern.compile("\\b" + tmpVariableType
-                    // + "\\s+" + tmpVariableName + "\\b");
-                    Pattern pattern = Pattern
-                            .compile("\\b" + tmpVariableName + "\\b");
+                    String tmpVariableType = Pattern.quote(variableType);
+                    Pattern pattern = Pattern.compile("\\b" + tmpVariableType
+                            + "\\s+" + tmpVariableName + "\\b");
+                    // Pattern pattern = Pattern.compile("\\b" + tmpVariableName
+                    // + "\\b");
                     Matcher matcher = pattern.matcher(methodRaw);
                     if (matcher.find()) {
                         fieldNamesInTargetMethod.add(variableName);
