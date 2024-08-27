@@ -80,7 +80,6 @@ def fetch_completion(
             )
             completion = completions.choices[0].message.content
             code_block = extract_code_block(completion)
-            code_block = clean_output(code_block)
         except Exception as e:
             print(repr(e))
             time.sleep(10)
@@ -88,8 +87,9 @@ def fetch_completion(
         if code_block != "":
             break
     # print(code_block)
-    data_entry["gpt"] = code_block
-    data_entry["prediction"] = code_block
+    data_entry["gpt_raw"] = code_block
+    data_entry["gpt"] = clean_output(code_block)
+    data_entry["prediction"] = clean_output(code_block)
     return data_entry
 
 
