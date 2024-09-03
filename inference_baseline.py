@@ -1,9 +1,9 @@
-import torch
+# import torch
 import argparse
 from tqdm import tqdm
-from peft import PeftModel
+# from peft import PeftModel
 from datasets import load_dataset
-from transformers import AutoTokenizer, AutoModelForCausalLM
+# from transformers import AutoTokenizer, AutoModelForCausalLM
 
 def split_batch(iterable, n=1):
     l = len(iterable)
@@ -22,20 +22,20 @@ def build_relevant_context(str):
 
 def main(args):
 
-    tokenizer = AutoTokenizer.from_pretrained(args.model_path, trust_remote_code=True)
-    if args.load_in_8bit:
-        model = AutoModelForCausalLM.from_pretrained(args.model_path, trust_remote_code=True, torch_dtype=torch.bfloat16, device_map='auto', load_in_8bit=True)
-    else:
-        model = AutoModelForCausalLM.from_pretrained(args.model_path, trust_remote_code=True, torch_dtype=torch.bfloat16, device_map='auto').cuda()
+    # tokenizer = AutoTokenizer.from_pretrained(args.model_path, trust_remote_code=True)
+    # if args.load_in_8bit:
+    #     model = AutoModelForCausalLM.from_pretrained(args.model_path, trust_remote_code=True, torch_dtype=torch.bfloat16, device_map='auto', load_in_8bit=True)
+    # else:
+    #     model = AutoModelForCausalLM.from_pretrained(args.model_path, trust_remote_code=True, torch_dtype=torch.bfloat16, device_map='auto').cuda()
     
     # model = PeftModel.from_pretrained(model, args.model_peft)
     # print('Loaded peft model from ', args.model_peft)
 
-    print("\n====== Start inferencing ======\n")
-    model.eval()
+    # print("\n====== Start inferencing ======\n")
+    # model.eval()
     
-    tokenizer.pad_token_id = tokenizer.eos_token_id
-    tokenizer.padding_side = "left"
+    # tokenizer.pad_token_id = tokenizer.eos_token_id
+    # tokenizer.padding_side = "left"
 
     dataset = load_dataset(args.dataset_path, split='test')
     
@@ -70,18 +70,18 @@ def main(args):
             model_inputs = tokenizer(batch, return_tensors="pt", max_length=args.max_len_input, truncation=True).to("cuda")
             generated_ids = model.generate(**model_inputs, max_new_tokens=args.max_len_output, pad_token_id=tokenizer.eos_token_id)
 
-            truncated_ids = [ids[len(model_inputs[idx]):] for idx, ids in enumerate(generated_ids)]
+    #         truncated_ids = [ids[len(model_inputs[idx]):] for idx, ids in enumerate(generated_ids)]
 
-            output = tokenizer.batch_decode(truncated_ids, skip_special_tokens=True)
+    #         output = tokenizer.batch_decode(truncated_ids, skip_special_tokens=True)
 
-            for idx, source in enumerate(batch):
-                try:
-                    out = output[idx]
-                    write_string_to_file(args.output_file, out + '<nl>')
-                except Exception as e:
-                    print(e)
-                    write_string_to_file(args.output_file, '<nl>')
-            pbar.update(1)
+    #         for idx, source in enumerate(batch):
+    #             try:
+    #                 out = output[idx]
+    #                 write_string_to_file(args.output_file, out + '<nl>')
+    #             except Exception as e:
+    #                 print(e)
+    #                 write_string_to_file(args.output_file, '<nl>')
+    #         pbar.update(1)
 
     print("\n====== Finish inferencing ======\n")
     

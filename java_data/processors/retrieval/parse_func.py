@@ -131,7 +131,7 @@ def processor(args):
 
 
 def main(args):
-    df = pd.read_parquet(args.input)
+    df = pd.read_json(args.input, lines=True)
     # df = df.loc[:5]
     class_path = "." f":'{args.parse_function}/target/dependency/*'"
     new_df = processor(
@@ -145,7 +145,7 @@ def main(args):
             args.log_dir,
         )
     )
-    new_df.to_parquet(args.output)
+    new_df.to_json(args.output, lines=True, orient="records")
 
 
 if __name__ == "__main__":

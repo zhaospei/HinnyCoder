@@ -1,6 +1,5 @@
 import concurrent.futures
 import copy
-import json
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -16,7 +15,6 @@ load_dotenv(override=True)
 
 # Setting API parameters
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-
 
 def extract_code_block(completion_string: str, language: str = "java") -> str:
     """Get the code block from the LLM answer
@@ -82,7 +80,6 @@ def fetch_completion(
             )
             completion = completions.choices[0].message.content
             code_block = extract_code_block(completion)
-            code_block = clean_output(code_block)
         except Exception as e:
             print(repr(e))
             time.sleep(10)
@@ -90,8 +87,9 @@ def fetch_completion(
         if code_block != "":
             break
     # print(code_block)
-    data_entry["gpt"] = code_block
-    data_entry["prediction"] = code_block
+    data_entry["gpt_raw"] = code_block
+    data_entry["gpt"] = clean_output(code_block)
+    data_entry["prediction"] = clean_output(code_block)
     return data_entry
 
 
@@ -127,7 +125,7 @@ if __name__ == "__main__":
                 dataset[idx] = updated_entry
             except Exception as e:
                 print(repr(e))
-    print("Generate code first time done!")
+    print("Generate code done!")
     updated_df = pd.DataFrame(dataset)
     updated_df.to_json(
         args.output,
