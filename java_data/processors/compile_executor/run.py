@@ -213,7 +213,7 @@ def process_dataframe(args):
 
 
 def main(args):
-    df = pd.read_parquet(args.input)
+    df = pd.read_json(args.input, lines=True)
     proj_group = df.groupby(by="proj_name")
     dfs = [proj_group.get_group(x) for x in proj_group.groups]
     dfs = group_dataframes(dfs, args.proc)
@@ -228,7 +228,16 @@ def main(args):
     with multiprocessing.Pool(args.proc) as p:
         results = p.map(process_dataframe, list_args)
     final_result = pd.concat(results, axis=0)
-    final_result.to_parquet(args.output)
+    print(
+        "\n\n\n\n\nCompilation rate: {:.2f}".format(
+            100
+            * len(
+                final_result[final_result["compiler_feedback"] == "<success>"]
+            )
+            / len(final_result)
+        )
+    )
+    final_result.to_json(args.output, lines=True, orient="records")
 
 
 if __name__ == "__main__":
