@@ -62,12 +62,18 @@ class CompilerExecutor:
         )
         # Find class in original file
         functions = get_functions(original_file)
+        print(functions)
+        print(row["class_name"], row["func_name"])
+        print("-" * 100)
         if functions:
+            print("Functions")
             for function in functions:
+                print(function["class_name"], function["func_name"])
                 if (
                     function["class_name"] == row["class_name"]
                     and function["func_name"] == row["func_name"]
                 ):
+                    print("Here")
                     class_start_idx, class_end_idx = get_location(
                         original_file, function["class_loc"]
                     )
@@ -111,7 +117,6 @@ class CompilerExecutor:
             f"Processing {row['proj_name']}/{row['relative_path']}"
         )
         compiler_feedback = None
-
         try:
             filled_file, original_file = self._fill_file(row)
             if not filled_file:
@@ -125,10 +130,12 @@ class CompilerExecutor:
                         row["proj_name"],
                         row["relative_path"],
                     )
+                    self.logger.info("\tPrepare to replace origin file")
                     with open(
                         path_to_file, "w", encoding="utf-8", errors="ignore"
                     ) as f:
                         f.write(filled_file)
+                    self.logger.info("\tAlready replaced origin file")
                     compile_info, returncode = self._get_compiler_feedback(row)
                     self.logger.info("\tGot compile info successfully")
                     # Debug
@@ -147,7 +154,8 @@ class CompilerExecutor:
             compilable = "<success>" if not returncode else "<fail>"
         except Exception:
             compiler_feedback = "<execute_error>"
-
+            compilable = "<execute_error>"
+            print(row["relative_path"])
         return compiler_feedback, compilable
 
     def execute(self):
@@ -217,9 +225,43 @@ def process_dataframe(args):
     return df
 
 
+# retry = [
+#     "spring-cloud-gateway/spring-cloud-gateway-server-mvc/src/main/java/org/springframework/cloud/gateway/server/mvc/filter/Bucket4jFilterFunctions.java",
+#     "frontend-maven-plugin/frontend-plugin-core/src/main/java/com/github/eirslett/maven/plugins/frontend/lib/ProxyConfig.java",
+#     "logstash-logback-encoder/src/main/java/net/logstash/logback/appender/AsyncDisruptorAppender.java",
+#     "logstash-logback-encoder/src/main/java/net/logstash/logback/appender/listener/FailureSummaryAppenderListener.java",
+#     "logstash-logback-encoder/src/main/java/net/logstash/logback/composite/AbstractCompositeJsonFormatter.java",
+#     "jitsi/modules/impl/protocol-sip/src/main/java/net/java/sip/communicator/impl/protocol/sip/xcap/model/xcaperror/UniquenessFailureType.java",
+#     "AutoLoadCache/autoload-cache-manager/autoload-cache-manager-jedis/src/main/java/com/jarvis/cache/redis/ShardedJedisCacheManager.java",
+#     "orientdb/server/src/main/java/com/orientechnologies/orient/server/distributed/operation/NodeOperationTask.java",
+#     "jitsi/modules/plugin/desktoputil/src/main/java/net/java/sip/communicator/plugin/desktoputil/plaf/SIPCommTabbedPaneEnhancedUI.java",
+#     "graphhopper/reader-gtfs/src/main/java/com/conveyal/gtfs/model/Calendar.java",
+#     "kafdrop/src/main/java/kafdrop/config/HealthCheckConfiguration.java",
+#     "kafdrop/src/main/java/kafdrop/config/InterceptorConfiguration.java",
+#     "kafdrop/src/main/java/kafdrop/config/MessageFormatConfiguration.java",
+#     "snowflake/muon-jediterm/src/main/java/com/jediterm/terminal/HyperlinkStyle.java",
+#     "mapstruct/processor/src/main/java/org/mapstruct/ap/internal/model/MapMappingMethod.java",
+#     "kafdrop/src/main/java/kafdrop/model/TopicPartitionVO.java",
+#     "mini-spring/src/main/java/org/springframework/aop/framework/CglibAopProxy.java",
+#     "mini-spring/src/main/java/org/springframework/core/convert/support/StringToNumberConverterFactory.java",
+#     "pmd/pmd-java/src/main/java/net/sourceforge/pmd/lang/java/symbols/table/coreimpl/MostlySingularMultimap.java",
+#     "jitsi/modules/util/src/main/java/net/java/sip/communicator/util/Html2Text.java",
+#     "unirest-java/unirest-modules-mocks/src/main/java/kong/unirest/core/Times.java",
+#     "truth/core/src/main/java/com/google/common/truth/Correspondence.java",
+#     "truth/core/src/main/java/com/google/common/truth/Expect.java",
+#     "truth/core/src/main/java/com/google/common/truth/IterableSubject.java",
+#     "truth/extensions/proto/src/main/java/com/google/common/truth/extensions/proto/DiffResult.java",
+#     "truth/extensions/proto/src/main/java/com/google/common/truth/extensions/proto/IterableOfProtosSubject.java",
+#     "javamelody/javamelody-core/src/main/java/net/bull/javamelody/JpaPersistence.java",
+#     "javamelody/javamelody-core/src/main/java/net/bull/javamelody/JspWrapper.java",
+#     "javamelody/javamelody-core/src/main/java/net/bull/javamelody/internal/model/CounterStorage.java",
+#     "javamelody/javamelody-core/src/main/java/net/bull/javamelody/internal/model/SamplingProfiler.java",
+# ]
+
+
 def main(args):
     df = pd.read_json(args.input, lines=True)
-    df = df[df["proj_name"] == "spring-cloud_spring-cloud-gateway"]
+    # df = df[df["relative_path"].isin(retry)][:1]
     proj_group = df.groupby(by="proj_name")
     dfs = [proj_group.get_group(x) for x in proj_group.groups]
     dfs = group_dataframes(dfs, args.proc)
