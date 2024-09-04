@@ -89,10 +89,10 @@ class CompilerExecutor:
             f"cd {path_to_project} "
             "&& cd $(ls -d */|head -n 1) "
             "&& echo $(pwd)"
-            f"&& {self.mvn} clean compile -DskipTests -Dcheckstyle.skip -Dgpg.skip=true -Dlicense.skip=true"
+            f"&& {self.mvn} clean compile -DskipTests -Dcheckstyle.skip -Dgpg.skip -Dlicense.skip"
         )
-        data = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-        return data.stdout
+        res = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        return res.stdout, res.returncode
 
     def _extract_error(self, compile_info: str):
         err_pattern = r"^\[ERROR\] (?P<file>.+?):\[(?P<line>\d+),(?P<col>\d+)\] (?P<err>.+)$"
@@ -129,8 +129,10 @@ class CompilerExecutor:
                         path_to_file, "w", encoding="utf-8", errors="ignore"
                     ) as f:
                         f.write(filled_file)
-                    compile_info = self._get_compiler_feedback(row)
+                    compile_info, returncode = self._get_compiler_feedback(row)
                     self.logger.info("\tGot compile info successfully")
+                    # Debug
+                    # print(compile_info, returncode)
                     compiler_feedback = self._extract_error(compile_info)
                     self.logger.info("\tExtracted error successfully")
                 except Exception:
@@ -142,16 +144,15 @@ class CompilerExecutor:
                     ) as f:
                         f.write(original_file)
                     self.logger.info("\tWrote back")
-            if not compiler_feedback:
-                compiler_feedback = "<success>"
-
+            compilable = "<success>" if not returncode else "<fail>"
         except Exception:
             compiler_feedback = "<execute_error>"
 
-        return compiler_feedback
+        return compiler_feedback, compilable
 
     def execute(self):
-        compiler_feedbacks = []
+        lst_compiler_feedback = []
+        lst_compilable = []
         counter = 0
         for _, row in tqdm(
             self.df.iterrows(),
@@ -160,14 +161,17 @@ class CompilerExecutor:
             position=self.index,
         ):
             counter += 1
-            compiler_feedbacks.append(self._execute(row))
+            compiler_feedback, compilable = self._execute(row)
+            lst_compiler_feedback.append(compiler_feedback)
+            lst_compilable.append(compilable)
             if counter % 10 == 0:
                 log_df = self.df.iloc[:counter]
-                log_df["compiler_feedback"] = compiler_feedbacks
+                log_df["compiler_feedback"] = lst_compiler_feedback
+                log_df["compilable"] = lst_compilable
                 log_df.to_parquet(
                     f"{self.log_dir}/executor{self.index}.parquet"
                 )
-        return compiler_feedbacks
+        return lst_compiler_feedback, lst_compilable
 
 
 def group_dataframes(df_list: List[pd.DataFrame], num_groups: int):
@@ -207,13 +211,15 @@ def process_dataframe(args):
     compiler = CompilerExecutor(
         df, column_to_check, proj_storage_dir, log_dir, mvn, index
     )
-    compiler_feedbacks = compiler.execute()
-    df["compiler_feedback"] = compiler_feedbacks
+    lst_compiler_feedback, lst_compilable = compiler.execute()
+    df["compiler_feedback"] = lst_compiler_feedback
+    df["compilable"] = lst_compilable
     return df
 
 
 def main(args):
     df = pd.read_json(args.input, lines=True)
+    df = df[df["proj_name"] == "spring-cloud_spring-cloud-gateway"]
     proj_group = df.groupby(by="proj_name")
     dfs = [proj_group.get_group(x) for x in proj_group.groups]
     dfs = group_dataframes(dfs, args.proc)
@@ -231,9 +237,7 @@ def main(args):
     print(
         "\n\n\n\n\nCompilation rate: {:.2f}".format(
             100
-            * len(
-                final_result[final_result["compiler_feedback"] == "<success>"]
-            )
+            * len(final_result[final_result["compilable"] == "<success>"])
             / len(final_result)
         )
     )
