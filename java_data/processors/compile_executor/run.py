@@ -62,18 +62,18 @@ class CompilerExecutor:
         )
         # Find class in original file
         functions = get_functions(original_file)
-        print(functions)
-        print(row["class_name"], row["func_name"])
-        print("-" * 100)
+        # print(functions)
+        # print(row["class_name"], row["func_name"])
+        # print("-" * 100)
         if functions:
-            print("Functions")
+            # print("Functions")
             for function in functions:
-                print(function["class_name"], function["func_name"])
+                # print(function["class_name"], function["func_name"])
                 if (
                     function["class_name"] == row["class_name"]
                     and function["func_name"] == row["func_name"]
                 ):
-                    print("Here")
+                    # print("Here")
                     class_start_idx, class_end_idx = get_location(
                         original_file, function["class_loc"]
                     )
